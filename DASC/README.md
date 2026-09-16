@@ -29,7 +29,7 @@ Tạo database và bảng:
 mysql -u root -p < sql/schema.sql
 ```
 
-Tạo tài khoản Admin mặc định (email: `admin@nhatro.local`, mật khẩu: `Admin@123`):
+Tạo tài khoản Admin mặc định
 
 ```bash
 npm run seed

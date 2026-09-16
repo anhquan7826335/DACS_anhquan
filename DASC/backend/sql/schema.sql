@@ -1,12 +1,11 @@
 -- =====================================================================
 -- HỆ THỐNG QUẢN LÝ NHÀ TRỌ & TỰ ĐỘNG HÓA HÓA ĐƠN THANH TOÁN
--- CSDL phi chuẩn hóa - 5 bảng chính (MySQL 8.0+)
+-- Schema MySQL 8.0+, chạy trên database đã chọn (ví dụ: defaultdb trên Aiven)
 -- =====================================================================
+-- Không CREATE DATABASE hoặc USE ở đây vì tài khoản Aiven thường chỉ có
+-- quyền trên database dịch vụ đã được cấp sẵn.
 
-CREATE DATABASE IF NOT EXISTS rental_management
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE rental_management;
+SET NAMES utf8mb4;
 
 -- 1. Bảng users (Người dùng & Tài khoản)
 CREATE TABLE IF NOT EXISTS users (

@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { getRooms, getRoomById, createRoom, updateRoom } = require('../controllers/room.controller');
+const { controllers } = require('../container');
 
-router.get('/', authenticate, getRooms);
-router.get('/:id', authenticate, getRoomById);
-router.post('/', authenticate, authorize('ADMIN'), createRoom);
-router.put('/:id', authenticate, authorize('ADMIN'), updateRoom);
+const { roomController } = controllers;
+
+router.get('/', authenticate, roomController.getRooms);
+router.get('/:id', authenticate, roomController.getRoomById);
+router.post('/', authenticate, authorize('ADMIN'), roomController.createRoom);
+router.put('/:id', authenticate, authorize('ADMIN'), roomController.updateRoom);
 
 module.exports = router;

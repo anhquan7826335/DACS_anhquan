@@ -25,7 +25,6 @@ function authenticate(req, res, next) {
 /**
  * Chỉ cho phép các role được liệt kê đi tiếp.
  * Dùng: router.post('/', authenticate, authorize('ADMIN'), controller)
- * (email: `admin@nhatro.local`, mật khẩu: `Admin@123`)
  */
 function authorize(...allowedRoles) {
   return (req, res, next) => {

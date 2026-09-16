@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { login, register, lookupTenant } = require('../controllers/auth.controller');
 const { authenticate, authorize } = require('../middleware/auth');
+const { controllers } = require('../container');
 
-router.post('/login', login);
-router.post('/register', register);
-router.get('/tenant-lookup', authenticate, authorize('ADMIN'), lookupTenant);
+const { authController } = controllers;
+
+router.post('/login', authController.login);
+router.post('/register', authController.register);
+router.get('/tenant-lookup', authenticate, authorize('ADMIN'), authController.lookupTenant);
 
 module.exports = router;
