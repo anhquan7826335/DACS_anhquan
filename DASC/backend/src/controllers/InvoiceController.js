@@ -27,7 +27,8 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi tạo hóa đơn.');
     }
   };
-  // lấy all đơn
+
+  // lấy tất cả hóa đơn (route chỉ cho phép ADMIN)
   getAllInvoices = async (req, res) => {
     try {
       const rows = await this.invoiceService.listAll(req.query);
@@ -36,6 +37,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err);
     }
   };
+
   // lấy đơn theo tenant
   getTenantInvoices = async (req, res) => {
     try {

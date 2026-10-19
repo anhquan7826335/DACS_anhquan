@@ -32,11 +32,6 @@ class InvoiceRepository extends BaseRepository {
   async findByTenant(tenantId) {
     return this.query('SELECT * FROM invoices WHERE tenant_id = ? ORDER BY year DESC, month DESC', [tenantId]);
   }
-  // lấy hóa đơn theo id
-  async findById(id) {
-    const rows = await this.query('SELECT * FROM invoices WHERE id = ? LIMIT 1', [id]);
-    return rows[0] || null;
-  }
   // lấy danh sách hóa đơn chưa thanh toán
   async findAllUnpaid() {
     return this.query(`SELECT * FROM invoices WHERE payment_status = 'UNPAID'`);

@@ -7,7 +7,7 @@ const { contractController } = controllers;
 
 router.post('/', authenticate, authorize('ADMIN'), contractController.createContract);
 router.get('/my', authenticate, authorize('TENANT'), contractController.getMyActiveContract);
-router.get('/room/:roomId', authenticate, contractController.getActiveContractByRoom);
+router.get('/room/:roomId', authenticate, authorize('ADMIN'), contractController.getActiveContractByRoom);
 router.put('/:id/terminate', authenticate, authorize('ADMIN'), contractController.terminateContract);
 
 module.exports = router;
