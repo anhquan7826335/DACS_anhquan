@@ -23,7 +23,7 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
 
   function handleSelectTenant(_, option) {
     setSelectedTenant(option.tenant);
-    form.setFieldsValue({ tenant_phone: option.tenant.phone, tenant_cccd: option.tenant.cccd });
+    form.setFieldsValue({ tenant_phone: option.tenant.phone });
   }
 
   async function handleSubmit(values) {
@@ -41,7 +41,6 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
         water_rate: values.water_rate,
         service_fee: values.service_fee || 0,
         tenant_phone: values.tenant_phone,
-        tenant_cccd: values.tenant_cccd,
         start_date: values.dates[0].format('YYYY-MM-DD'),
         end_date: values.dates[1].format('YYYY-MM-DD'),
       });
@@ -81,9 +80,6 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
           </div>
         )}
         <Form.Item name="tenant_phone" label="SĐT khách thuê" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="tenant_cccd" label="CCCD khách thuê" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
         <Form.Item name="deposit" label="Tiền cọc (đ)" rules={[{ required: true }]}>

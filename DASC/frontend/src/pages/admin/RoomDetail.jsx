@@ -67,7 +67,7 @@ export default function RoomDetail() {
               Tạo hợp đồng thuê
             </Button>
           ) : (
-            <Space>
+            <Space wrap>
               <Button icon={<ThunderboltOutlined />} type="primary" onClick={() => setInvoiceModalOpen(true)}>
                 Chốt điện nước / Tạo hóa đơn
               </Button>
@@ -78,7 +78,7 @@ export default function RoomDetail() {
           )
         }
       >
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 2 }}>
           <Descriptions.Item label="Tầng">{room.floor}</Descriptions.Item>
           <Descriptions.Item label="Diện tích">{room.area ? `${room.area} m²` : '-'}</Descriptions.Item>
           <Descriptions.Item label="Giá phòng">{room.price?.toLocaleString('vi-VN')} đ/tháng</Descriptions.Item>
@@ -90,10 +90,9 @@ export default function RoomDetail() {
       {room.status === 'RENTED' && (
         <Card title="Thông tin hợp đồng" style={{ marginTop: 16 }}>
           {contract ? (
-            <Descriptions bordered column={2}>
+            <Descriptions bordered column={{ xs: 1, sm: 2 }}>
               <Descriptions.Item label="Khách thuê">{contract.tenant_name}</Descriptions.Item>
               <Descriptions.Item label="SĐT">{contract.tenant_phone}</Descriptions.Item>
-              <Descriptions.Item label="CCCD">{contract.tenant_cccd}</Descriptions.Item>
               <Descriptions.Item label="Tiền cọc">{contract.deposit?.toLocaleString('vi-VN')} đ</Descriptions.Item>
               <Descriptions.Item label="Đơn giá điện">{contract.electricity_rate?.toLocaleString('vi-VN')} đ/kWh</Descriptions.Item>
               <Descriptions.Item label="Đơn giá nước">{contract.water_rate?.toLocaleString('vi-VN')} đ/m³</Descriptions.Item>

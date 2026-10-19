@@ -35,7 +35,7 @@ class ContractService {
 
       const contractId = await this.contractRepository.createWithConnection(conn, {
         room_id, tenant_id, room_number: room.room_number, tenant_name: tenantRow.full_name,
-        tenant_phone: data.tenant_phone || tenantRow.phone, tenant_cccd: data.tenant_cccd || tenantRow.cccd,
+        tenant_phone: data.tenant_phone || tenantRow.phone,
         deposit, electricity_rate, water_rate, service_fee: data.service_fee || 0, start_date, end_date,
       });
 

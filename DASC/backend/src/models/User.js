@@ -5,12 +5,12 @@
  * phức tạp — logic đăng nhập/đăng ký thuộc về AuthService).
  */
 class User {
-  constructor({ id, full_name, email, phone, cccd, password_hash, role, created_at }) {
+  constructor({ id, full_name, email, phone, avatar_url, password_hash, role, created_at }) {
     this.id = id;
     this.full_name = full_name;
     this.email = email;
     this.phone = phone;
-    this.cccd = cccd;
+    this.avatar_url = avatar_url || null;
     this.password_hash = password_hash; // không bao giờ trả field này ra ngoài API
     this.role = role; // 'ADMIN' | 'TENANT'
     this.created_at = created_at;
@@ -33,7 +33,7 @@ class User {
       full_name: this.full_name,
       email: this.email,
       phone: this.phone,
-      cccd: this.cccd,
+      avatar_url: this.avatar_url,
       role: this.role,
     };
   }

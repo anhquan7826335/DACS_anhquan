@@ -42,9 +42,21 @@ class InvoiceService {
    * PaymentService sinh mã QR thanh toán.
    */
   async createInvoice(data) {
-    const { contract_id, month, year, old_electricity, new_electricity, old_water, new_water, due_date } = data;
-    if (!contract_id || !month || !year || new_electricity == null || new_water == null || !due_date) {
+    const { contract_id, month, year, electricity, water, due_date } = data;
+    if (!contract_id || !month || !year || electricity == null || water == null || !due_date) {
       const err = new Error('Thiếu thông tin bắt buộc để tạo hóa đơn.');
+      err.status = 400;
+      throw err;
+    }
+    if (!Number.isInteger(Number(electricity)) || Number(electricity) < 0 ||
+        !Number.isInteger(Number(water)) || Number(water) < 0) {
+      const err = new Error('Chỉ số điện và nước tiêu thụ phải là số nguyên không âm.');
+      err.status = 400;
+      throw err;
+    }
+    if (!Number.isInteger(Number(month)) || Number(month) < 1 || Number(month) > 12 ||
+        !Number.isInteger(Number(year)) || Number(year) < 1) {
+      const err = new Error('Kỳ hóa đơn không hợp lệ.');
       err.status = 400;
       throw err;
     }
@@ -56,8 +68,8 @@ class InvoiceService {
     const roomPrice = room?.price || 0;
 
     const calc = Invoice.calculate({
-      oldElec: old_electricity, newElec: new_electricity,
-      oldWater: old_water, newWater: new_water,
+      electricity: Number(electricity),
+      water: Number(water),
       roomPrice, electricityRate: contract.electricity_rate, waterRate: contract.water_rate,
       serviceFee: contract.service_fee, otherFee: data.other_fee,
     });
@@ -65,7 +77,7 @@ class InvoiceService {
     const invoiceId = await this.invoiceRepository.create({
       contract_id, room_id: contract.room_id, tenant_id: contract.tenant_id,
       room_number: contract.room_number, tenant_name: contract.tenant_name, month, year,
-      old_electricity, new_electricity, old_water, new_water,
+      electricity: calc.electricity, water: calc.water,
       room_fee: calc.roomFee, electricity_fee: calc.electricityFee, water_fee: calc.waterFee,
       other_fee: data.other_fee || 0, total_amount: calc.totalAmount,
       due_date, bill_file_url: data.bill_file_url,

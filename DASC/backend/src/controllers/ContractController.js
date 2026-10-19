@@ -5,7 +5,7 @@ class ContractController extends BaseController {
     super();
     this.contractService = contractService;
   }
-
+  // tạo hợp đồng mới
   createContract = async (req, res) => {
     try {
       const id = await this.contractService.create(req.body);
@@ -14,7 +14,7 @@ class ContractController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi tạo hợp đồng.');
     }
   };
-
+  // lấy hợp đồng đang hiệu lực theo phòng
   getActiveContractByRoom = async (req, res) => {
     try {
       const contract = await this.contractService.getActiveByRoom(req.params.roomId);
@@ -23,7 +23,7 @@ class ContractController extends BaseController {
       return this.handleError(res, err);
     }
   };
-
+  // lấy hợp đồng đang hiệu lực theo người thuê
   getMyActiveContract = async (req, res) => {
     try {
       const contract = await this.contractService.getActiveByTenant(req.user.id);
@@ -32,7 +32,7 @@ class ContractController extends BaseController {
       return this.handleError(res, err);
     }
   };
-
+  // thanh lý hợp đồng
   terminateContract = async (req, res) => {
     try {
       await this.contractService.terminate(req.params.id);

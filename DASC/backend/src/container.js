@@ -7,6 +7,7 @@ const RoomRepository = require('./repositories/RoomRepository');
 const ContractRepository = require('./repositories/ContractRepository');
 const InvoiceRepository = require('./repositories/InvoiceRepository');
 const TicketRepository = require('./repositories/TicketRepository');
+const SupportRepository = require('./repositories/SupportRepository');
 
 // ---- Integration Services ----
 const OCRService = require('./services/OCRService');
@@ -20,6 +21,7 @@ const RoomService = require('./services/RoomService');
 const ContractService = require('./services/ContractService');
 const InvoiceService = require('./services/InvoiceService');
 const TicketService = require('./services/TicketService');
+const SupportService = require('./services/SupportService');
 
 // ---- Controllers ----
 const AuthController = require('./controllers/AuthController');
@@ -27,6 +29,7 @@ const RoomController = require('./controllers/RoomController');
 const ContractController = require('./controllers/ContractController');
 const InvoiceController = require('./controllers/InvoiceController');
 const TicketController = require('./controllers/TicketController');
+const SupportController = require('./controllers/SupportController');
 
 /**
  * Container — "Composition Root" của toàn ứng dụng: nơi duy nhất khởi tạo
@@ -38,6 +41,7 @@ const roomRepository = new RoomRepository(pool);
 const contractRepository = new ContractRepository(pool);
 const invoiceRepository = new InvoiceRepository(pool);
 const ticketRepository = new TicketRepository(pool);
+const supportRepository = new SupportRepository(pool);
 
 const ocrService = new OCRService({
   geminiApiKey: process.env.GEMINI_API_KEY,
@@ -65,13 +69,14 @@ const reminderEngine = new ReminderEngine(invoiceRepository);
 const authService = new AuthService(userRepository, {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN,
-});
+}, cloudinaryService);
 const roomService = new RoomService(roomRepository);
 const contractService = new ContractService(contractRepository, roomRepository, userRepository);
 const invoiceService = new InvoiceService(
   invoiceRepository, contractRepository, roomRepository, cloudinaryService, ocrService, paymentService
 );
 const ticketService = new TicketService(ticketRepository, roomRepository, cloudinaryService, ocrService);
+const supportService = new SupportService(supportRepository, ocrService);
 
 const authController = new AuthController(authService);
 const roomController = new RoomController(roomService);
@@ -80,10 +85,11 @@ const invoiceController = new InvoiceController(
   invoiceService, reminderEngine, process.env.CRON_SECRET, process.env.BANK_WEBHOOK_SECRET
 );
 const ticketController = new TicketController(ticketService);
+const supportController = new SupportController(supportService);
 
 module.exports = {
   pool,
   testConnection,
   reminderEngine,
-  controllers: { authController, roomController, contractController, invoiceController, ticketController },
+  controllers: { authController, roomController, contractController, invoiceController, ticketController, supportController },
 };

@@ -52,10 +52,8 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
         contract_id: contract.id,
         month: values.period.month() + 1,
         year: values.period.year(),
-        old_electricity: values.old_electricity,
-        new_electricity: values.new_electricity,
-        old_water: values.old_water,
-        new_water: values.new_water,
+        electricity: values.new_electricity - values.old_electricity,
+        water: values.new_water - values.old_water,
         other_fee: values.other_fee || 0,
         due_date: values.due_date.format('YYYY-MM-DD'),
         bill_file_url: scanResult?.bill_file_url,
@@ -98,17 +96,17 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
             <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
           </Form.Item>
 
-          <Divider orientation="left" plain>Chỉ số cũ (kỳ trước)</Divider>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <Form.Item name="old_electricity" label="Điện cũ (kWh)" rules={[{ required: true }]} style={{ flex: 1 }}>
-              <InputNumber min={0} style={{ width: '100%' }} />
+          <Divider orientation="left" plain>Chỉ số công tơ kỳ trước</Divider>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+            <Form.Item name="old_electricity" label="Điện cũ (kWh)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
+              <InputNumber min={0} precision={0} style={{ width: '100%' }} />
             </Form.Item>
-            <Form.Item name="old_water" label="Nước cũ (m³)" rules={[{ required: true }]} style={{ flex: 1 }}>
-              <InputNumber min={0} style={{ width: '100%' }} />
+            <Form.Item name="old_water" label="Nước cũ (m³)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
+              <InputNumber min={0} precision={0} style={{ width: '100%' }} />
             </Form.Item>
           </div>
 
-          <Divider orientation="left" plain>Chỉ số mới — chọn 1 trong 3 cách</Divider>
+          <Divider orientation="left" plain>Chỉ số công tơ hiện tại — chọn 1 trong 3 cách</Divider>
           <Tabs
             activeKey={method}
             onChange={setMethod}
@@ -120,12 +118,40 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
           />
 
           {method === 'manual' && (
-            <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-              <Form.Item name="new_electricity" label="Điện mới (kWh)" rules={[{ required: true }]} style={{ flex: 1 }}>
-                <InputNumber min={0} style={{ width: '100%' }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+              <Form.Item
+                name="new_electricity"
+                label="Điện hiện tại (kWh)"
+                dependencies={['old_electricity']}
+                rules={[
+                  { required: true },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (value == null || value >= getFieldValue('old_electricity')) return Promise.resolve();
+                      return Promise.reject(new Error('Chỉ số điện hiện tại không thể thấp hơn kỳ trước.'));
+                    },
+                  }),
+                ]}
+                style={{ flex: '1 1 140px' }}
+              >
+                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item name="new_water" label="Nước mới (m³)" rules={[{ required: true }]} style={{ flex: 1 }}>
-                <InputNumber min={0} style={{ width: '100%' }} />
+              <Form.Item
+                name="new_water"
+                label="Nước hiện tại (m³)"
+                dependencies={['old_water']}
+                rules={[
+                  { required: true },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (value == null || value >= getFieldValue('old_water')) return Promise.resolve();
+                      return Promise.reject(new Error('Chỉ số nước hiện tại không thể thấp hơn kỳ trước.'));
+                    },
+                  }),
+                ]}
+                style={{ flex: '1 1 140px' }}
+              >
+                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
               </Form.Item>
             </div>
           )}
@@ -159,12 +185,40 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
                 />
               )}
 
-              <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-                <Form.Item name="new_electricity" label="Điện mới (kWh) — AI đã điền, có thể sửa" rules={[{ required: true }]} style={{ flex: 1 }}>
-                  <InputNumber min={0} style={{ width: '100%' }} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+                <Form.Item
+                  name="new_electricity"
+                  label="Điện hiện tại (kWh) — AI đã điền"
+                  dependencies={['old_electricity']}
+                  rules={[
+                    { required: true },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (value == null || value >= getFieldValue('old_electricity')) return Promise.resolve();
+                        return Promise.reject(new Error('Chỉ số điện hiện tại không thể thấp hơn kỳ trước.'));
+                      },
+                    }),
+                  ]}
+                  style={{ flex: '1 1 140px' }}
+                >
+                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
                 </Form.Item>
-                <Form.Item name="new_water" label="Nước mới (m³) — AI đã điền, có thể sửa" rules={[{ required: true }]} style={{ flex: 1 }}>
-                  <InputNumber min={0} style={{ width: '100%' }} />
+                <Form.Item
+                  name="new_water"
+                  label="Nước hiện tại (m³) — AI đã điền"
+                  dependencies={['old_water']}
+                  rules={[
+                    { required: true },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (value == null || value >= getFieldValue('old_water')) return Promise.resolve();
+                        return Promise.reject(new Error('Chỉ số nước hiện tại không thể thấp hơn kỳ trước.'));
+                      },
+                    }),
+                  ]}
+                  style={{ flex: '1 1 140px' }}
+                >
+                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
                 </Form.Item>
               </div>
             </div>

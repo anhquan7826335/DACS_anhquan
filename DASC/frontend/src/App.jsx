@@ -12,6 +12,8 @@ import Invoices from './pages/admin/Invoices';
 import Tickets from './pages/admin/Tickets';
 import TenantHome from './pages/tenant/TenantHome';
 import TenantTicket from './pages/tenant/TenantTicket';
+import Support from './pages/Support';
+import Profile from './pages/Profile';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -28,15 +30,19 @@ export default function App() {
             <Route path="/login" element={<Login />} />
 
             <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+              <Route path="/profile" element={<Profile />} />
+
               {/* Admin */}
               <Route path="/admin/rooms" element={<PrivateRoute role="ADMIN"><Rooms /></PrivateRoute>} />
               <Route path="/admin/rooms/:id" element={<PrivateRoute role="ADMIN"><RoomDetail /></PrivateRoute>} />
               <Route path="/admin/invoices" element={<PrivateRoute role="ADMIN"><Invoices /></PrivateRoute>} />
               <Route path="/admin/tickets" element={<PrivateRoute role="ADMIN"><Tickets /></PrivateRoute>} />
+              <Route path="/admin/support" element={<PrivateRoute role="ADMIN"><Support /></PrivateRoute>} />
 
               {/* Tenant */}
               <Route path="/tenant" element={<PrivateRoute role="TENANT"><TenantHome /></PrivateRoute>} />
               <Route path="/tenant/tickets" element={<PrivateRoute role="TENANT"><TenantTicket /></PrivateRoute>} />
+              <Route path="/tenant/support" element={<PrivateRoute role="TENANT"><Support /></PrivateRoute>} />
             </Route>
 
             <Route path="/" element={<RootRedirect />} />

@@ -1,0 +1,133 @@
+.profile-page {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.profile-page-heading {
+  margin-bottom: 22px;
+}
+
+.profile-eyebrow {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.profile-settings-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.profile-sidebar,
+.profile-settings-card {
+  overflow: hidden;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
+}
+
+.profile-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px;
+  background: #f0fbfb;
+}
+
+.profile-sidebar-user-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.profile-settings-menu {
+  padding: 8px;
+  border-inline-end: 0 !important;
+}
+
+.profile-settings-menu .ant-menu-item {
+  margin-inline: 0 !important;
+  width: 100%;
+}
+
+.profile-settings-card .ant-card-body {
+  padding: 26px;
+}
+
+.profile-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.profile-card-heading .ant-typography {
+  margin: 0;
+}
+
+.profile-card-heading .ant-typography + .ant-typography {
+  display: block;
+  margin-top: 6px;
+}
+
+.profile-avatar-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 26px;
+  padding: 18px;
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+  background: #fcfcfd;
+}
+
+.profile-large-avatar {
+  flex: 0 0 auto;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px #eaecf0;
+}
+
+.profile-avatar-name {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.profile-details .ant-descriptions-item-label {
+  color: #667085;
+}
+
+.profile-password-form {
+  max-width: 460px;
+}
+
+@media (max-width: 760px) {
+  .profile-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .profile-settings-menu {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .profile-settings-menu .ant-menu-item {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .profile-settings-card .ant-card-body {
+    padding: 18px;
+  }
+
+  .profile-card-heading {
+    flex-direction: column;
+  }
+}

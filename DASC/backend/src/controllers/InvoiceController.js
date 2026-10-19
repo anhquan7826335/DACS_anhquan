@@ -8,7 +8,7 @@ class InvoiceController extends BaseController {
     this.cronSecret = cronSecret;
     this.bankWebhookSecret = bankWebhookSecret;
   }
-
+  // quét hóa đơn từ ảnh/PDF
   scanBill = async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: 'Vui lòng đính kèm file ảnh hoặc PDF hóa đơn.' });
@@ -18,7 +18,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err, 'Lỗi khi quét hóa đơn.');
     }
   };
-
+  // tạo đơn mới
   createInvoice = async (req, res) => {
     try {
       const result = await this.invoiceService.createInvoice(req.body);
@@ -27,7 +27,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi tạo hóa đơn.');
     }
   };
-
+  // lấy all đơn
   getAllInvoices = async (req, res) => {
     try {
       const rows = await this.invoiceService.listAll(req.query);
@@ -36,7 +36,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err);
     }
   };
-
+  // lấy đơn theo tenant
   getTenantInvoices = async (req, res) => {
     try {
       const rows = await this.invoiceService.listForTenant(req.user.id);
@@ -45,7 +45,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err);
     }
   };
-
+  // thanh toán hóa đơn
   payInvoice = async (req, res) => {
     try {
       await this.invoiceService.markPaid(req.params.id);
@@ -54,7 +54,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err);
     }
   };
-
+  // chạy tiến trình nhắc nợ
   triggerReminders = async (req, res) => {
     try {
       const secret = req.headers['x-cron-secret'];
@@ -67,7 +67,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi chạy tiến trình nhắc nợ.');
     }
   };
-
+  // xử lý webhook từ ngân hàng
   bankWebhook = async (req, res) => {
     try {
       const secret = req.headers['x-webhook-secret'];

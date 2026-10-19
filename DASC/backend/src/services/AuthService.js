@@ -8,10 +8,11 @@ const User = require('../models/User');
  * không tự viết logic nghiệp vụ (tách biệt trách nhiệm — Separation of Concerns).
  */
 class AuthService {
-  constructor(userRepository, { jwtSecret, jwtExpiresIn = '7d' }) {
+  constructor(userRepository, { jwtSecret, jwtExpiresIn = '7d' }, cloudinaryService) {
     this.userRepository = userRepository;
     this.jwtSecret = jwtSecret;
     this.jwtExpiresIn = jwtExpiresIn;
+    this.cloudinaryService = cloudinaryService;
   }
 
   _signToken(user) {
@@ -39,7 +40,7 @@ class AuthService {
     return { token: this._signToken(user), user: user.toPublicJSON() };
   }
 
-  async register({ full_name, email, phone, cccd, password, role }) {
+  async register({ full_name, email, phone, password, role }) {
     const existing = await this.userRepository.findByEmailOrPhone(email, phone);
     if (existing) {
       const err = new Error('Email hoặc số điện thoại đã được sử dụng.');
@@ -48,10 +49,63 @@ class AuthService {
     }
     const password_hash = await bcrypt.hash(password, 10);
     const finalRole = role === 'ADMIN' ? 'ADMIN' : 'TENANT';
-    const id = await this.userRepository.create({ full_name, email, phone, cccd, password_hash, role: finalRole });
+    const id = await this.userRepository.create({ full_name, email, phone, password_hash, role: finalRole });
 
-    const user = new User({ id, full_name, email, phone, cccd, role: finalRole });
+    const user = new User({ id, full_name, email, phone, role: finalRole });
     return { token: this._signToken(user), user: user.toPublicJSON() };
+  }
+
+  async changePassword(userId, currentPassword, newPassword) {
+    if (typeof currentPassword !== 'string' || !currentPassword ||
+      typeof newPassword !== 'string' || newPassword.length < 6) {
+      const err = new Error('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      err.status = 400;
+      throw err;
+    }
+
+    const row = await this.userRepository.findById(userId);
+    if (!row) {
+      const err = new Error('Không tìm thấy tài khoản.');
+      err.status = 404;
+      throw err;
+    }
+
+    const user = User.fromRow(row);
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      const err = new Error('Mật khẩu hiện tại không đúng.');
+      err.status = 400;
+      throw err;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.updatePassword(userId, passwordHash);
+  }
+
+  async uploadAvatar(userId, fileBuffer) {
+    if (!this.cloudinaryService) {
+      const err = new Error('Dịch vụ lưu ảnh chưa được cấu hình.');
+      err.status = 503;
+      throw err;
+    }
+
+    const userRow = await this.userRepository.findById(userId);
+    if (!userRow) {
+      const err = new Error('Không tìm thấy tài khoản.');
+      err.status = 404;
+      throw err;
+    }
+
+    const uploaded = await this.cloudinaryService.uploadBuffer(fileBuffer, {
+      folder: 'rental_management/avatars',
+      resourceType: 'image',
+    });
+    if (!uploaded?.secure_url) {
+      throw new Error('Không nhận được địa chỉ ảnh sau khi tải lên.');
+    }
+
+    await this.userRepository.updateAvatar(userId, uploaded.secure_url);
+    return User.fromRow({ ...userRow, avatar_url: uploaded.secure_url }).toPublicJSON();
   }
 
   async lookupTenants(keyword) {

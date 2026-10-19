@@ -64,21 +64,21 @@ export default function Rooms() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={3} style={{ margin: 0 }}>Quản lý Phòng trọ</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
           Thêm phòng mới
         </Button>
       </div>
 
-      <Space style={{ marginBottom: 16 }}>
+      <Space wrap style={{ marginBottom: 16, width: '100%' }}>
         <Input
           placeholder="Tìm theo số phòng (VD: P101)"
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onPressEnter={fetchRooms}
-          style={{ width: 260 }}
+          style={{ width: 260, maxWidth: '100%' }}
           allowClear
         />
         <Select
@@ -95,7 +95,7 @@ export default function Rooms() {
         />
       </Space>
 
-      <Table rowKey="id" columns={columns} dataSource={rooms} loading={loading} bordered />
+      <Table rowKey="id" columns={columns} dataSource={rooms} loading={loading} bordered scroll={{ x: 700 }} />
 
       <Modal
         title="Thêm phòng mới"

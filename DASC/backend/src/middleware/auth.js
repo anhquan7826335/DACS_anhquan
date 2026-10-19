@@ -5,9 +5,23 @@ require('dotenv').config();
  * Xác thực JWT Token gửi kèm header: Authorization: Bearer <token>
  * Gắn thông tin user đã giải mã vào req.user = { id, role, full_name }
  */
-function authenticate(req, res, next) {
+function getTokenFromRequest(req) {
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (bearerToken) return bearerToken;
+
+  const cookieHeader = req.headers.cookie || '';
+  const cookiePair = cookieHeader
+    .split(';')
+    .map((chunk) => chunk.trim())
+    .find((chunk) => chunk.startsWith('token='));
+
+  if (!cookiePair) return null;
+  return decodeURIComponent(cookiePair.slice('token='.length));
+}
+
+function authenticate(req, res, next) {
+  const token = getTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ message: 'Thiếu token xác thực.' });

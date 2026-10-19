@@ -1,6 +1,7 @@
 const BaseRepository = require('./BaseRepository');
 
 class RoomRepository extends BaseRepository {
+  // lấy danh sách phòng với các bộ lọc
   async findAll({ status, search } = {}) {
     let sql = 'SELECT * FROM rooms WHERE 1=1';
     const params = [];
@@ -9,17 +10,17 @@ class RoomRepository extends BaseRepository {
     sql += ' ORDER BY floor ASC, room_number ASC';
     return this.query(sql, params);
   }
-
+  // lấy thông tin phòng theo id
   async findById(id) {
     const rows = await this.query('SELECT * FROM rooms WHERE id = ? LIMIT 1', [id]);
     return rows[0] || null;
   }
-
+  // lấy thông tin phòng theo số phòng
   async findByRoomNumber(roomNumber) {
     const rows = await this.query('SELECT * FROM rooms WHERE room_number = ? LIMIT 1', [roomNumber]);
     return rows[0] || null;
   }
-
+  // tạo phòng
   async create({ room_number, floor, price, area, description }) {
     const result = await this.query(
       `INSERT INTO rooms (room_number, floor, price, area, description, status) VALUES (?, ?, ?, ?, ?, 'EMPTY')`,
@@ -27,7 +28,7 @@ class RoomRepository extends BaseRepository {
     );
     return result.insertId;
   }
-
+  // cập nhật thông tin phòng
   async update(id, fields) {
     const keys = Object.keys(fields);
     if (keys.length === 0) return 0;

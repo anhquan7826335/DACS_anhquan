@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, Alert, Tabs } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Alert } from 'antd';
+import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-
-const { Title, Text } = Typography;
+import './css/Login.css';
 
 export default function Login() {
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [mode, setMode] = useState('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -43,60 +42,89 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)' }}>
-      <Card style={{ width: 400, borderRadius: 12 }}>
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <Title level={3} style={{ marginBottom: 0 }}>Quản lý Nhà trọ</Title>
-          <Text type="secondary">Hệ thống Quản lý & Tự động hóa Hóa đơn</Text>
-        </div>
+    <div className="login-page">
+      <div className="login-panel">
+        <h1 className="login-title">Chào mừng trở lại!</h1>
 
-        <Tabs
-          activeKey={mode}
-          onChange={(k) => { setMode(k); setError(''); }}
-          centered
-          items={[
-            { key: 'login', label: 'Đăng nhập' },
-            { key: 'register', label: 'Đăng ký' },
-          ]}
-        />
-
-        {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
+        {error && <Alert type="error" message={error} showIcon className="login-error" />}
 
         {mode === 'login' ? (
-          <Form layout="vertical" onFinish={handleLogin}>
-            <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Nhập email' }]}>
-              <Input prefix={<UserOutlined />} placeholder="Email" />
+          <Form layout="vertical" onFinish={handleLogin} className="login-form">
+            <Form.Item name="email" rules={[{ required: true, message: 'Nhập email' }]} className="login-form-item">
+              <Input
+                prefix={<MailOutlined style={{ color: '#4d4d4d', fontSize: 22 }} />}
+                placeholder="Email"
+                className="login-input"
+              />
             </Form.Item>
-            <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: 'Nhập mật khẩu' }]}>
-              <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
+
+            <Form.Item name="password" rules={[{ required: true, message: 'Nhập mật khẩu' }]} className="login-form-item login-form-item--password">
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#4d4d4d', fontSize: 22 }} />}
+                placeholder="Mật Khẩu"
+                className="login-password"
+              />
             </Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
-              Đăng nhập
+
+            <div className="login-forgot">
+              <button type="button">Quên Mật Khẩu?</button>
+            </div>
+
+            <Button type="primary" htmlType="submit" block loading={loading} className="login-submit">
+              Đăng Nhập
             </Button>
           </Form>
         ) : (
-          <Form layout="vertical" onFinish={handleRegister}>
-            <Form.Item name="full_name" label="Họ và tên" rules={[{ required: true }]}>
-              <Input placeholder="Nguyễn Văn A" />
+          <Form layout="vertical" onFinish={handleRegister} className="login-form">
+            <Form.Item name="full_name" rules={[{ required: true, message: 'Nhập họ và tên' }]} className="login-form-item">
+              <Input placeholder="Họ và tên" className="login-input" />
             </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
-              <Input placeholder="ban@email.com" />
+            <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Email không hợp lệ' }]} className="login-form-item">
+              <Input placeholder="Email" className="login-input" />
             </Form.Item>
-            <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true }]}>
-              <Input placeholder="0901234567" />
+            <Form.Item name="phone" rules={[{ required: true, message: 'Nhập số điện thoại' }]} className="login-form-item">
+              <Input placeholder="Số điện thoại" className="login-input" />
             </Form.Item>
-            <Form.Item name="cccd" label="CCCD">
-              <Input placeholder="012345678901" />
+            <Form.Item name="password" rules={[{ required: true, min: 6, message: 'Mật khẩu tối thiểu 6 ký tự' }]} className="login-form-item login-form-item--password">
+              <Input.Password placeholder="Mật khẩu" className="login-password" />
             </Form.Item>
-            <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, min: 6 }]}>
-              <Input.Password placeholder="Tối thiểu 6 ký tự" />
-            </Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
-              Đăng ký tài khoản Khách thuê
+
+            <Button type="primary" htmlType="submit" block loading={loading} className="login-submit">
+              Đăng Ký
             </Button>
           </Form>
         )}
-      </Card>
+
+        <div className="login-divider">
+          <div className="login-divider-line" />
+          <span className="login-divider-text">Hoặc tiếp tục với</span>
+          <div className="login-divider-line" />
+        </div>
+
+        <div className="login-socials">
+          <Button className="login-social-btn">
+            <span className="login-social-icon">G</span>
+            <span>Google</span>
+          </Button>
+          <Button className="login-social-btn login-social-btn--facebook">
+            <span className="login-social-icon">f</span>
+            <span>Facebook</span>
+          </Button>
+        </div>
+
+        <div className="login-toggle">
+          Không có tài khoản?{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === 'login' ? 'register' : 'login');
+              setError('');
+            }}
+          >
+            {mode === 'login' ? 'Đăng ký ngay' : 'Đăng nhập ngay'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -7,10 +7,16 @@ const roomRoutes = require('./routes/room.routes');
 const contractRoutes = require('./routes/contract.routes');
 const invoiceRoutes = require('./routes/invoice.routes');
 const ticketRoutes = require('./routes/ticket.routes');
+const supportRoutes = require('./routes/support.routes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,6 +30,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/support', supportRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -38,8 +38,8 @@ export default function Invoices() {
     { title: 'Phòng', dataIndex: 'room_number', key: 'room_number', render: (v) => <b>{v}</b> },
     { title: 'Khách thuê', dataIndex: 'tenant_name', key: 'tenant_name' },
     { title: 'Kỳ', key: 'period', render: (_, r) => `${r.month}/${r.year}` },
-    { title: 'Điện (kWh)', key: 'elec', render: (_, r) => `${r.old_electricity} → ${r.new_electricity}` },
-    { title: 'Nước (m³)', key: 'water', render: (_, r) => `${r.old_water} → ${r.new_water}` },
+    { title: 'Điện tiêu thụ (kWh)', dataIndex: 'electricity', key: 'electricity' },
+    { title: 'Nước tiêu thụ (m³)', dataIndex: 'water', key: 'water' },
     { title: 'Tổng tiền', dataIndex: 'total_amount', key: 'total_amount', render: (v) => <b>{v.toLocaleString('vi-VN')} đ</b> },
     { title: 'Hạn thanh toán', dataIndex: 'due_date', key: 'due_date' },
     {
@@ -59,9 +59,9 @@ export default function Invoices() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={3} style={{ margin: 0 }}>Quản lý Hóa đơn</Title>
-        <Space>
+        <Space wrap>
           <Select
             placeholder="Lọc trạng thái"
             allowClear

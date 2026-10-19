@@ -29,6 +29,9 @@ class TicketService {
         severity: 'MEDIUM',
         title: 'Sự cố báo cáo qua video',
         summary_vi: 'Video đã được lưu trữ, vui lòng xem trực tiếp để đánh giá vì AI Vision hiện chỉ hỗ trợ phân tích ảnh tĩnh.',
+        is_safety_risk: false,
+        immediate_actions: [],
+        should_call_landlord_urgently: false,
       };
     } else {
       const base64 = fileBuffer.toString('base64');
@@ -39,7 +42,8 @@ class TicketService {
   }
 
   async create(data) {
-    const { room_id, title } = data;
+    const { room_id } = data;
+    const title = data.title || 'Báo cáo sự cố';
     if (!room_id || !title) {
       const err = new Error('Thiếu Số phòng hoặc Tiêu đề sự cố.');
       err.status = 400;

@@ -73,9 +73,9 @@ export default function Tickets() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={3} style={{ margin: 0 }}>Báo cáo Sự cố</Title>
-        <Space>
+        <Space wrap>
           <Select
             placeholder="Lọc mức độ"
             allowClear

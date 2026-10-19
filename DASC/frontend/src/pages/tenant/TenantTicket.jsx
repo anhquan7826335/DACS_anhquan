@@ -6,7 +6,7 @@ import {
 import { CameraOutlined, SendOutlined } from '@ant-design/icons';
 import api from '../../api/axios';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const severityColor = { LOW: 'blue', MEDIUM: 'orange', HIGH: 'red' };
 const severityLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Khẩn cấp' };
 const statusColor = { PENDING: 'default', IN_PROGRESS: 'processing', RESOLVED: 'success' };
@@ -30,7 +30,7 @@ export default function TenantTicket() {
     }
   }
 
-  // Không có API riêng "GET /tickets/my" trong spec gốc, nên tenant chỉ thấy phiếu vừa gửi trong phiên này.
+
   useEffect(() => { fetchContract(); }, []);
 
   async function handleAnalyze(file) {
@@ -45,11 +45,10 @@ export default function TenantTicket() {
       setAnalysis(data);
       setImageUrl(data.image_url);
       form.setFieldsValue({
-        title: data.title,
-        description: data.summary_vi,
+        title: data.title || 'Báo cáo sự cố',
         severity: data.severity,
       });
-      message.success('AI đã phân tích xong sự cố, vui lòng kiểm tra và bấm Gửi.');
+      message.success('Đã nhận ảnh. Bạn có thể nhập mô tả thêm rồi bấm Gửi cho chủ trọ.');
     } catch (err) {
       message.error(err.response?.data?.message || 'Lỗi khi phân tích ảnh sự cố.');
     } finally {
@@ -61,6 +60,10 @@ export default function TenantTicket() {
   async function handleSubmit(values) {
     if (!contract) {
       message.warning('Bạn cần có hợp đồng đang hiệu lực để báo sự cố.');
+      return;
+    }
+    if (!imageUrl) {
+      message.warning('Vui lòng chụp hoặc chọn ảnh sự cố trước khi gửi.');
       return;
     }
     setSubmitting(true);
@@ -95,7 +98,7 @@ export default function TenantTicket() {
         <Alert type="warning" showIcon message="Bạn hiện không có hợp đồng thuê đang hiệu lực nên chưa thể báo sự cố." style={{ marginBottom: 16 }} />
       )}
 
-      <Card title="Chụp ảnh sự cố — AI sẽ tự phân tích và điền biểu mẫu">
+      <Card title="Chụp ảnh sự cố trước, sau đó nhập mô tả nếu cần">
         <Upload.Dragger
           accept="image/*"
           capture="environment"
@@ -106,7 +109,7 @@ export default function TenantTicket() {
         >
           <p className="ant-upload-drag-icon"><CameraOutlined /></p>
           <p>Bấm để chụp ảnh hoặc chọn ảnh chỗ hỏng</p>
-          <p className="ant-upload-hint">AI sẽ chẩn đoán thiết bị, mức độ khẩn cấp và điền sẵn nội dung</p>
+          <p className="ant-upload-hint">Ảnh giúp chủ trọ hiểu sự cố nhanh hơn. Bạn có thể nhập thêm mô tả bên dưới.</p>
         </Upload.Dragger>
 
         {analyzing && <Spin style={{ marginTop: 16 }} tip="AI đang phân tích ảnh sự cố..." />}
@@ -115,12 +118,46 @@ export default function TenantTicket() {
           <img src={imageUrl} alt="Sự cố" style={{ width: 160, marginTop: 16, borderRadius: 8 }} />
         )}
 
+        {analysis?.should_call_landlord_urgently && (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginTop: 16 }}
+            message="Tình huống khẩn cấp!"
+            description="Vui lòng gọi ngay cho chủ trọ thay vì chỉ gửi báo cáo, để được xử lý kịp thời."
+          />
+        )}
+
+        {analysis?.is_safety_risk && !analysis?.should_call_landlord_urgently && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginTop: 16 }}
+            message="Lưu ý an toàn"
+            description="Sự cố này có thể gây nguy hiểm nếu không xử lý cẩn thận, xem hướng dẫn bên dưới."
+          />
+        )}
+
+        {analysis?.immediate_actions?.length > 0 && (
+          <Card size="small" title="AI gợi ý: Bạn có thể làm ngay bây giờ" style={{ marginTop: 16, background: '#f0f5ff' }}>
+            <List
+              size="small"
+              dataSource={analysis.immediate_actions}
+              renderItem={(action, idx) => (
+                <List.Item>
+                  <Text><b>{idx + 1}.</b> {action}</Text>
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+
         <Form layout="vertical" form={form} onFinish={handleSubmit} style={{ marginTop: 16 }}>
-          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, message: 'Nhập tiêu đề sự cố' }]}>
-            <Input placeholder="VD: Vòi nước bị rò rỉ" />
+          <Form.Item name="title" hidden>
+            <Input />
           </Form.Item>
           <Form.Item name="description" label="Mô tả chi tiết">
-            <Input.TextArea rows={3} placeholder="Mô tả thêm nếu cần..." />
+            <Input.TextArea rows={3} placeholder="Nhập mô tả thêm nếu bạn muốn (không bắt buộc)..." />
           </Form.Item>
           <Form.Item name="severity" label="Mức độ khẩn cấp" initialValue="MEDIUM" rules={[{ required: true }]}>
             <Select options={Object.keys(severityLabel).map((k) => ({ value: k, label: severityLabel[k] }))} />

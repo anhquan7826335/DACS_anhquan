@@ -4,9 +4,6 @@ Dự án gồm 2 phần độc lập:
 - `backend/` — Node.js (Express) + MySQL
 - `frontend/` — React (Vite) + TailwindCSS + Ant Design
 
-Đã được test end-to-end thực tế (login → tạo phòng → tạo hợp đồng → tạo hóa
-đơn → sinh VietQR → webhook ngân hàng tự gạch nợ → báo sự cố) trên MySQL/MariaDB thật.
-
 ## 1. Cài đặt Backend
 
 ```bash
@@ -28,6 +25,8 @@ Tạo database và bảng:
 ```bash
 mysql -u root -p < sql/schema.sql
 ```
+
+Ảnh đại diện được lưu trên Cloudinary; tài khoản Cloudinary cần được cấu hình trong `CLOUDINARY_*`.
 
 Tạo tài khoản Admin mặc định
 
@@ -61,7 +60,7 @@ Mặc định chạy tại `http://localhost:5173`, đã cấu hình proxy `/api
 
 ```
 backend/
-├── sql/schema.sql              # 5 bảng phi chuẩn hóa
+├── sql/schema.sql              # schema MySQL: users, rooms, contracts, invoices, tickets, support_messages
 ├── src/
 │   ├── config/db.js            # MySQL connection pool
 │   ├── middleware/
