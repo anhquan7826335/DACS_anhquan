@@ -59,8 +59,11 @@ class InvoiceController extends BaseController {
   // chạy tiến trình nhắc nợ
   triggerReminders = async (req, res) => {
     try {
+      if (!this.cronSecret) {
+        return res.status(503).json({ message: 'Tiến trình nhắc nợ chưa được cấu hình bảo mật.' });
+      }
       const secret = req.headers['x-cron-secret'];
-      if (this.cronSecret && secret !== this.cronSecret) {
+      if (secret !== this.cronSecret) {
         return res.status(401).json({ message: 'Thiếu hoặc sai x-cron-secret.' });
       }
       const summary = await this.reminderEngine.runOnce();
@@ -72,8 +75,11 @@ class InvoiceController extends BaseController {
   // xử lý webhook từ ngân hàng
   bankWebhook = async (req, res) => {
     try {
+      if (!this.bankWebhookSecret) {
+        return res.status(503).json({ message: 'Webhook ngân hàng chưa được cấu hình bảo mật.' });
+      }
       const secret = req.headers['x-webhook-secret'];
-      if (this.bankWebhookSecret && secret !== this.bankWebhookSecret) {
+      if (secret !== this.bankWebhookSecret) {
         return res.status(401).json({ message: 'Sai chữ ký webhook.' });
       }
       const matched = await this.invoiceService.handleBankWebhook(req.body);
