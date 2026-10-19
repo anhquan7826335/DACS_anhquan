@@ -24,7 +24,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import './css/Profile.css';
+import '../css/Profile.css';
 
 const { Title, Text } = Typography;
 

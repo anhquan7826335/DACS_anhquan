@@ -4,7 +4,7 @@ import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import './css/Login.css';
+import '../css/Login.css';
 
 export default function Login() {
   const [mode, setMode] = useState('login');

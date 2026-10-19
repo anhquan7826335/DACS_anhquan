@@ -3,7 +3,7 @@ import { Alert, Button, Card, Empty, Input, List, Spin, Typography, message } fr
 import { CustomerServiceOutlined, PlusOutlined, SendOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-import './css/Support.css';
+import '../css/Support.css';
 
 const { Title, Text } = Typography;
 

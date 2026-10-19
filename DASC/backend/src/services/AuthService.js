@@ -48,7 +48,7 @@ class AuthService {
       throw err;
     }
     const password_hash = await bcrypt.hash(password, 10);
-    const finalRole = role === 'ADMIN' ? 'ADMIN' : 'TENANT';
+    const finalRole = 'TENANT';
     const id = await this.userRepository.create({ full_name, email, phone, password_hash, role: finalRole });
 
     const user = new User({ id, full_name, email, phone, role: finalRole });

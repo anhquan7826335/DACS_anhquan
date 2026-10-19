@@ -1,0 +1,39 @@
+.app-navbar {
+  position: sticky;
+  z-index: 1000;
+  top: 0;
+}
+
+.app-navbar .ant-menu-horizontal > .ant-menu-item {
+  height: 40px;
+  margin-inline: 4px;
+  padding-inline: 12px;
+  border-radius: 30px;
+  line-height: 40px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.app-navbar .ant-menu-dark.ant-menu-horizontal > .ant-menu-item:hover,
+.app-navbar .ant-menu-dark.ant-menu-horizontal > .ant-menu-item-selected {
+  border-radius: 30px;
+  background: #3a3d44;
+  color: #fff;
+}
+
+.app-navbar .ant-menu-dark.ant-menu-horizontal > .ant-menu-item::after {
+  border-bottom: 0;
+}
+
+.app-navbar-inner {
+  display: flex;
+  width: min(100% - 32px, 1040px);
+  min-height: 64px;
+  align-items: center;
+  margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .app-navbar-inner {
+    width: calc(100% - 24px);
+  }
+}
