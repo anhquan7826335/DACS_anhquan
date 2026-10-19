@@ -152,14 +152,6 @@ export default function Support() {
         title={<span><CustomerServiceOutlined /> Trợ lý nhà trọ</span>}
         extra={<Text type="secondary">Hỏi về phòng, hợp đồng, hóa đơn, thanh toán và sự cố</Text>}
       >
-        <Alert
-          showIcon
-          type="info"
-          message="Bạn có thể hỏi mọi điều liên quan đến việc thuê và sử dụng phòng trọ."
-          description="Với thông tin riêng của hợp đồng hoặc khoản tiền cụ thể, hãy xác nhận lại với chủ trọ."
-          style={{ marginBottom: 16 }}
-        />
-
         <div className="support-chat-layout">
           <aside className="support-history">
             <div className="support-history-header">
@@ -200,6 +192,13 @@ export default function Support() {
           </aside>
 
           <section className="support-conversation">
+            <Alert
+              showIcon
+              type="info"
+              message="Bạn có thể hỏi mọi điều liên quan đến việc thuê và sử dụng phòng trọ."
+              description="Với thông tin riêng của hợp đồng hoặc khoản tiền cụ thể, hãy xác nhận lại với chủ trọ."
+              style={{ marginBottom: 16 }}
+            />
             <div className="support-messages">
               {loading ? (
                 <Spin />
