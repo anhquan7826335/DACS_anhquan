@@ -7,10 +7,7 @@ require('dotenv').config();
  * Chạy: npm run seed
  */
 async function seed() {
-  const email = 'admin@local.com';
-  const password = 'Admin@123';
-  const full_name = 'Chủ trọ';
-  const phone = '0900000000';
+
 
   try {
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
