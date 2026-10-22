@@ -27,6 +27,7 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi tạo hóa đơn.');
     }
   };
+  //tạo đơn ngắn hạn
 
   // lấy tất cả hóa đơn (route chỉ cho phép ADMIN)
   getAllInvoices = async (req, res) => {

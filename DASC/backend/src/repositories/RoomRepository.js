@@ -15,6 +15,31 @@ class RoomRepository extends BaseRepository {
     const rows = await this.query('SELECT * FROM rooms WHERE id = ? LIMIT 1', [id]);
     return rows[0] || null;
   }
+
+  async expireEndedDailyRentals() {
+    const conn = await this.pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        `UPDATE contracts
+         SET status = 'EXPIRED'
+         WHERE status = 'ACTIVE' AND rental_type = 'DAILY' AND end_date < CURDATE()`
+      );
+      await conn.query(
+        `UPDATE rooms r
+         JOIN contracts c ON r.current_contract_id = c.id
+         SET r.status = 'EMPTY', r.current_contract_id = NULL, r.tenant_name = NULL, r.end_date = NULL
+         WHERE r.status = 'RENTED' AND c.status = 'EXPIRED'
+           AND c.rental_type = 'DAILY' AND c.end_date < CURDATE()`
+      );
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  }
   // lấy thông tin phòng theo số phòng
   async findByRoomNumber(roomNumber) {
     const rows = await this.query('SELECT * FROM rooms WHERE room_number = ? LIMIT 1', [roomNumber]);

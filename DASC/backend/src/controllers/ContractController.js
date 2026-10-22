@@ -14,6 +14,17 @@ class ContractController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi tạo hợp đồng.');
     }
   };
+  createDailyContract = async (req, res) => {
+    try {
+      const rental = await this.contractService.createDaily({
+        ...req.body,
+        tenant_id: req.user.id,
+      });
+      return res.status(201).json({ ...rental, message: 'Thuê phòng theo ngày thành công.' });
+    } catch (err) {
+      return this.handleError(res, err, 'Lỗi máy chủ khi thuê phòng theo ngày.');
+    }
+  };
   // lấy hợp đồng đang hiệu lực theo phòng
   getActiveContractByRoom = async (req, res) => {
     try {

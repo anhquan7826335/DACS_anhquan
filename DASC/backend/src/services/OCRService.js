@@ -87,7 +87,7 @@ Câu hỏi mới: ${question}`;
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.getGeminiModel()}:generateContent?key=${this.geminiApiKey}`;
       const { data } = await axios.post(url, {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 3900 },
       });
       return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Xin lỗi, trợ lý chưa có câu trả lời.';
     }

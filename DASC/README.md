@@ -26,6 +26,12 @@ Tạo database và bảng:
 mysql -u root -p < sql/schema.sql
 ```
 
+Nếu database đã được tạo trước đó, bật tính năng thuê theo ngày bằng migration:
+
+```bash
+mysql -u root -p < sql/migrations/20261022_daily_rentals.sql
+```
+
 Ảnh đại diện được lưu trên Cloudinary; tài khoản Cloudinary cần được cấu hình trong `CLOUDINARY_*`.
 
 Tạo tài khoản Admin mặc định
@@ -84,7 +90,7 @@ backend/
 
 - **Auth**: `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/tenant-lookup*` (ADMIN tra cứu tenant khi tạo hợp đồng)
 - **Rooms**: `GET /api/rooms`, `GET /api/rooms/:id*`, `POST /api/rooms`, `PUT /api/rooms/:id`
-- **Contracts**: `POST /api/contracts`, `GET /api/contracts/room/:roomId`, `GET /api/contracts/my*` (tenant xem hợp đồng của mình), `PUT /api/contracts/:id/terminate`
+- **Contracts**: `POST /api/contracts`, `POST /api/contracts/daily` (tenant tự thuê phòng trống theo ngày), `GET /api/contracts/room/:roomId`, `GET /api/contracts/my*` (tenant xem hợp đồng của mình), `PUT /api/contracts/:id/terminate`
 - **Invoices**: `POST /api/invoices/scan-bill`, `POST /api/invoices`, `GET /api/invoices/admin`, `GET /api/invoices/tenant`, `PUT /api/invoices/:id/pay`, `POST /api/invoices/trigger-reminders`, `POST /api/invoices/bank-webhook*` (Auto-Matching gạch nợ)
 - **Tickets**: `POST /api/tickets/analyze-image`, `POST /api/tickets`, `GET /api/tickets`, `PUT /api/tickets/:id*` (cập nhật trạng thái xử lý)
 

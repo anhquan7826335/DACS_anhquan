@@ -11,6 +11,7 @@ import RoomDetail from './pages/admin/RoomDetail';
 import Invoices from './pages/admin/Invoices';
 import Tickets from './pages/admin/Tickets';
 import TenantHome from './pages/tenant/TenantHome';
+import TenantRooms from './pages/tenant/TenantRooms';
 import TenantTicket from './pages/tenant/TenantTicket';
 import Support from './pages/Support';
 import Profile from './pages/Profile';
@@ -41,6 +42,7 @@ export default function App() {
 
               {/* Tenant */}
               <Route path="/tenant" element={<PrivateRoute role="TENANT"><TenantHome /></PrivateRoute>} />
+              <Route path="/tenant/rooms" element={<PrivateRoute role="TENANT"><TenantRooms /></PrivateRoute>} />
               <Route path="/tenant/tickets" element={<PrivateRoute role="TENANT"><TenantTicket /></PrivateRoute>} />
               <Route path="/tenant/support" element={<PrivateRoute role="TENANT"><Support /></PrivateRoute>} />
             </Route>

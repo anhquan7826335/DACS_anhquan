@@ -8,6 +8,7 @@ class RoomService {
   }
 
   async list(filters) {
+    await this.roomRepository.expireEndedDailyRentals();
     return this.roomRepository.findAll(filters);
   }
 

@@ -25,6 +25,7 @@ const adminMenu = [
 ];
 
 const tenantMenu = [
+  { key: '/tenant/rooms', icon: <HomeOutlined />, label: <Link to="/tenant/rooms">Thuê phòng</Link> },
   { key: '/tenant', icon: <FileTextOutlined />, label: <Link to="/tenant">Hóa đơn của tôi</Link> },
   { key: '/tenant/tickets', icon: <ToolOutlined />, label: <Link to="/tenant/tickets">Báo sự cố</Link> },
   { key: '/tenant/support', icon: <CustomerServiceOutlined />, label: <Link to="/tenant/support">Hỗ trợ</Link> },

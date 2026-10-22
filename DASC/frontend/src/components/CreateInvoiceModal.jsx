@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import api from '../api/axios';
 
 export default function CreateInvoiceModal({ open, onClose, room, contract, onSuccess }) {
+  const isDailyRental = contract?.rental_type === 'DAILY';
   const [form] = Form.useForm();
   const [method, setMethod] = useState('manual'); // manual | camera | upload
   const [scanning, setScanning] = useState(false);
@@ -52,9 +53,9 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
         contract_id: contract.id,
         month: values.period.month() + 1,
         year: values.period.year(),
-        electricity: values.new_electricity - values.old_electricity,
-        water: values.new_water - values.old_water,
-        other_fee: values.other_fee || 0,
+        electricity: isDailyRental ? 0 : values.new_electricity - values.old_electricity,
+        water: isDailyRental ? 0 : values.new_water - values.old_water,
+        other_fee: isDailyRental ? 0 : values.other_fee || 0,
         due_date: values.due_date.format('YYYY-MM-DD'),
         bill_file_url: scanResult?.bill_file_url,
       });
@@ -70,7 +71,7 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
 
   return (
     <Modal
-      title={`Chốt điện nước & Tạo hóa đơn - Phòng ${room?.room_number}`}
+      title={`${isDailyRental ? 'Tạo hóa đơn thuê ngày' : 'Chốt điện nước & Tạo hóa đơn'} - Phòng ${room?.room_number}`}
       open={open}
       onCancel={() => { resetAll(); onClose(); }}
       footer={result ? null : undefined}
@@ -96,65 +97,67 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
             <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
           </Form.Item>
 
-          <Divider orientation="left" plain>Chỉ số công tơ kỳ trước</Divider>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-            <Form.Item name="old_electricity" label="Điện cũ (kWh)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
-              <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item name="old_water" label="Nước cũ (m³)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
-              <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-            </Form.Item>
-          </div>
+          {!isDailyRental && (
+            <>
+              <Divider orientation="left" plain>Chỉ số công tơ kỳ trước</Divider>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                <Form.Item name="old_electricity" label="Điện cũ (kWh)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
+                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+                </Form.Item>
+                <Form.Item name="old_water" label="Nước cũ (m³)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
+                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </div>
 
-          <Divider orientation="left" plain>Chỉ số công tơ hiện tại — chọn 1 trong 3 cách</Divider>
-          <Tabs
-            activeKey={method}
-            onChange={setMethod}
-            items={[
-              { key: 'manual', label: 'Gõ tay' },
-              { key: 'camera', label: <span><CameraOutlined /> Chụp ảnh công tơ</span> },
-              { key: 'upload', label: <span><UploadOutlined /> Upload ảnh/PDF hóa đơn</span> },
-            ]}
-          />
+              <Divider orientation="left" plain>Chỉ số công tơ hiện tại — chọn 1 trong 3 cách</Divider>
+              <Tabs
+                activeKey={method}
+                onChange={setMethod}
+                items={[
+                  { key: 'manual', label: 'Gõ tay' },
+                  { key: 'camera', label: <span><CameraOutlined /> Chụp ảnh công tơ</span> },
+                  { key: 'upload', label: <span><UploadOutlined /> Upload ảnh/PDF hóa đơn</span> },
+                ]}
+              />
 
-          {method === 'manual' && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
-              <Form.Item
-                name="new_electricity"
-                label="Điện hiện tại (kWh)"
-                dependencies={['old_electricity']}
-                rules={[
-                  { required: true },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (value == null || value >= getFieldValue('old_electricity')) return Promise.resolve();
-                      return Promise.reject(new Error('Chỉ số điện hiện tại không thể thấp hơn kỳ trước.'));
-                    },
-                  }),
-                ]}
-                style={{ flex: '1 1 140px' }}
-              >
-                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-              </Form.Item>
-              <Form.Item
-                name="new_water"
-                label="Nước hiện tại (m³)"
-                dependencies={['old_water']}
-                rules={[
-                  { required: true },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (value == null || value >= getFieldValue('old_water')) return Promise.resolve();
-                      return Promise.reject(new Error('Chỉ số nước hiện tại không thể thấp hơn kỳ trước.'));
-                    },
-                  }),
-                ]}
-                style={{ flex: '1 1 140px' }}
-              >
-                <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-              </Form.Item>
-            </div>
-          )}
+              {method === 'manual' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+                  <Form.Item
+                    name="new_electricity"
+                    label="Điện hiện tại (kWh)"
+                    dependencies={['old_electricity']}
+                    rules={[
+                      { required: true },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (value == null || value >= getFieldValue('old_electricity')) return Promise.resolve();
+                          return Promise.reject(new Error('Chỉ số điện hiện tại không thể thấp hơn kỳ trước.'));
+                        },
+                      }),
+                    ]}
+                    style={{ flex: '1 1 140px' }}
+                  >
+                    <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+                  </Form.Item>
+                  <Form.Item
+                    name="new_water"
+                    label="Nước hiện tại (m³)"
+                    dependencies={['old_water']}
+                    rules={[
+                      { required: true },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (value == null || value >= getFieldValue('old_water')) return Promise.resolve();
+                          return Promise.reject(new Error('Chỉ số nước hiện tại không thể thấp hơn kỳ trước.'));
+                        },
+                      }),
+                    ]}
+                    style={{ flex: '1 1 140px' }}
+                  >
+                    <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+                  </Form.Item>
+                </div>
+              )}
 
           {(method === 'camera' || method === 'upload') && (
             <div style={{ marginTop: 12 }}>
@@ -222,17 +225,37 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
                 </Form.Item>
               </div>
             </div>
+              )}
+            </>
           )}
 
-          <Form.Item name="other_fee" label="Phí phát sinh khác (đ)" initialValue={0}>
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
+          {isDailyRental ? (
+            <Alert
+              type="info"
+              showIcon
+              message="Hóa đơn thuê ngày chỉ tính tiền phòng theo số ngày thuê; điện, nước và phí phát sinh bằng 0."
+            />
+          ) : (
+            <Form.Item name="other_fee" label="Phí phát sinh khác (đ)" initialValue={0}>
+              <InputNumber min={0} style={{ width: '100%' }} />
+            </Form.Item>
+          )}
 
           {contract && (
             <Descriptions size="small" bordered column={1} style={{ marginTop: 12 }}>
-              <Descriptions.Item label="Đơn giá điện">{contract.electricity_rate?.toLocaleString('vi-VN')} đ/kWh</Descriptions.Item>
-              <Descriptions.Item label="Đơn giá nước">{contract.water_rate?.toLocaleString('vi-VN')} đ/m³</Descriptions.Item>
-              <Descriptions.Item label="Phí dịch vụ">{Number(contract.service_fee || 0).toLocaleString('vi-VN')} đ</Descriptions.Item>
+              {isDailyRental ? (
+                <>
+                  <Descriptions.Item label="Đơn giá thuê ngày">{Number(contract.daily_rate).toLocaleString('vi-VN')} đ/ngày</Descriptions.Item>
+                  <Descriptions.Item label="Tiền điện">0 đ</Descriptions.Item>
+                  <Descriptions.Item label="Tiền nước">0 đ</Descriptions.Item>
+                </>
+              ) : (
+                <>
+                  <Descriptions.Item label="Đơn giá điện">{contract.electricity_rate?.toLocaleString('vi-VN')} đ/kWh</Descriptions.Item>
+                  <Descriptions.Item label="Đơn giá nước">{contract.water_rate?.toLocaleString('vi-VN')} đ/m³</Descriptions.Item>
+                  <Descriptions.Item label="Phí dịch vụ">{Number(contract.service_fee || 0).toLocaleString('vi-VN')} đ</Descriptions.Item>
+                </>
+              )}
             </Descriptions>
           )}
         </Form>
