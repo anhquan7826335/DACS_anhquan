@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Avatar, Button, Dropdown, Drawer, Layout, Menu, Typography } from 'antd';
 import {
+  AuditOutlined,
+  BarChartOutlined,
   CustomerServiceOutlined,
   DownOutlined,
   FileTextOutlined,
   HomeOutlined,
   LogoutOutlined,
   MenuOutlined,
+  TeamOutlined,
   ToolOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -19,13 +22,17 @@ const { Text } = Typography;
 
 const adminMenu = [
   { key: '/admin/rooms', icon: <HomeOutlined />, label: <Link to="/admin/rooms">Phòng trọ</Link> },
+  { key: '/admin/contracts', icon: <AuditOutlined />, label: <Link to="/admin/contracts">Hợp đồng</Link> },
   { key: '/admin/invoices', icon: <FileTextOutlined />, label: <Link to="/admin/invoices">Hóa đơn</Link> },
+  { key: '/admin/reports', icon: <BarChartOutlined />, label: <Link to="/admin/reports">Doanh thu</Link> },
+  { key: '/admin/users', icon: <TeamOutlined />, label: <Link to="/admin/users">Người dùng</Link> },
   { key: '/admin/tickets', icon: <ToolOutlined />, label: <Link to="/admin/tickets">Sự cố</Link> },
   { key: '/admin/support', icon: <CustomerServiceOutlined />, label: <Link to="/admin/support">Hỗ trợ</Link> },
 ];
 
 const tenantMenu = [
   { key: '/tenant/rooms', icon: <HomeOutlined />, label: <Link to="/tenant/rooms">Thuê phòng</Link> },
+  { key: '/tenant/contracts', icon: <AuditOutlined />, label: <Link to="/tenant/contracts">Hợp đồng của tôi</Link> },
   { key: '/tenant', icon: <FileTextOutlined />, label: <Link to="/tenant">Hóa đơn của tôi</Link> },
   { key: '/tenant/tickets', icon: <ToolOutlined />, label: <Link to="/tenant/tickets">Báo sự cố</Link> },
   { key: '/tenant/support', icon: <CustomerServiceOutlined />, label: <Link to="/tenant/support">Hỗ trợ</Link> },

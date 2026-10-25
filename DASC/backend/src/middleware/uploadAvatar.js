@@ -6,7 +6,9 @@ const uploadAvatar = multer({
   fileFilter: (req, file, callback) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.mimetype)) {
-      return callback(new Error('Ảnh đại diện chỉ hỗ trợ định dạng JPG, PNG hoặc WEBP.'));
+      const err = new Error('Ảnh đại diện chỉ hỗ trợ định dạng JPG, PNG hoặc WEBP.');
+      err.status = 400;
+      return callback(err);
     }
     callback(null, true);
   },

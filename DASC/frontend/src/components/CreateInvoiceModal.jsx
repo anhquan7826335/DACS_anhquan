@@ -1,20 +1,39 @@
 import { useState } from 'react';
 import {
   Modal, Form, InputNumber, DatePicker, message, Tabs, Upload, Button,
-  Alert, Spin, Descriptions, Divider,
+  Alert, Spin, Descriptions, Divider, Select,
 } from 'antd';
-import { UploadOutlined, CameraOutlined, ScanOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { UploadOutlined, ScanOutlined, CheckCircleOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../api/axios';
+import { fmtDate, moneyInputProps, vnd } from '../utils/format';
 
-export default function CreateInvoiceModal({ open, onClose, room, contract, onSuccess }) {
-  const isDailyRental = contract?.rental_type === 'DAILY';
+/**
+ * Tạo hóa đơn: điện, nước và phụ phí đều nhập bằng SỐ TIỀN (VNĐ), không nhập chỉ số công tơ.
+ * Hóa đơn thuê theo ngày chỉ tính tiền phòng theo số ngày thuê.
+ *
+ * Hai cách dùng:
+ *  - Từ trang chi tiết phòng: truyền sẵn `room` + `contract`.
+ *  - Từ trang Hóa đơn: truyền `contracts` (danh sách hợp đồng đang hiệu lực) để admin tự chọn hợp đồng
+ *    (thuê tháng hoặc thuê ngày) trong form.
+ */
+export default function CreateInvoiceModal({ open, onClose, room: roomProp, contract: contractProp, contracts, onSuccess }) {
   const [form] = Form.useForm();
-  const [method, setMethod] = useState('manual'); // manual | camera | upload
+  const pickedId = Form.useWatch('contract_id', form);
+  const contract = contractProp || contracts?.find((c) => c.id === pickedId) || null;
+  const room = roomProp || (contract ? { room_number: contract.room_number, price: contract.room_price } : null);
+  const isDailyRental = contract?.rental_type === 'DAILY';
+  const [method, setMethod] = useState('manual'); // manual | scan
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { qr_url, transfer_content, total_amount }
+
+  const electricity = Form.useWatch('electricity', form);
+  const water = Form.useWatch('water', form);
+  const otherFee = Form.useWatch('other_fee', form);
+  const roomFee = Number(contract?.monthly_fee ?? room?.price ?? 0);
+  const estimatedTotal = roomFee + Number(electricity || 0) + Number(water || 0) + Number(otherFee || 0);
 
   function resetAll() {
     form.resetFields();
@@ -34,27 +53,34 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
       });
       setScanResult(data);
       form.setFieldsValue({
-        new_electricity: data.new_electricity ?? undefined,
-        new_water: data.new_water ?? undefined,
+        electricity: data.electricity_amount ?? undefined,
+        water: data.water_amount ?? undefined,
       });
-      message.success('AI đã đọc xong chỉ số, vui lòng kiểm tra lại trước khi lưu.');
+      message.success('AI đã đọc xong số tiền, vui lòng kiểm tra lại trước khi lưu.');
     } catch (err) {
       message.error(err.response?.data?.message || 'Lỗi khi quét ảnh/PDF bằng AI.');
     } finally {
       setScanning(false);
     }
-    return false; // ngăn Upload tự động submit form thật
+    return false; // ngăn Upload tự động submit
+  }
+
+  function handlePickContract(id) {
+    const picked = contracts?.find((c) => c.id === id);
+    // Hợp đồng ngày: gợi ý sẵn kỳ hóa đơn là tháng bắt đầu thuê
+    if (picked?.rental_type === 'DAILY') form.setFieldsValue({ period: dayjs(picked.start_date) });
   }
 
   async function handleSubmit(values) {
+    if (!contract) return;
     setSubmitting(true);
     try {
       const { data } = await api.post('/invoices', {
         contract_id: contract.id,
         month: values.period.month() + 1,
         year: values.period.year(),
-        electricity: isDailyRental ? 0 : values.new_electricity - values.old_electricity,
-        water: isDailyRental ? 0 : values.new_water - values.old_water,
+        electricity: isDailyRental ? 0 : values.electricity,
+        water: isDailyRental ? 0 : values.water,
         other_fee: isDailyRental ? 0 : values.other_fee || 0,
         due_date: values.due_date.format('YYYY-MM-DD'),
         bill_file_url: scanResult?.bill_file_url,
@@ -71,7 +97,7 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
 
   return (
     <Modal
-      title={`${isDailyRental ? 'Tạo hóa đơn thuê ngày' : 'Chốt điện nước & Tạo hóa đơn'} - Phòng ${room?.room_number}`}
+      title={`${isDailyRental ? 'Tạo hóa đơn thuê ngày' : 'Tạo hóa đơn'}${room ? ` - Phòng ${room.room_number}` : ''}`}
       open={open}
       onCancel={() => { resetAll(); onClose(); }}
       footer={result ? null : undefined}
@@ -83,13 +109,27 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
       {result ? (
         <div style={{ textAlign: 'center' }}>
           <CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 12 }} />
-          <p>Đã tạo hóa đơn với tổng tiền <b>{result.total_amount.toLocaleString('vi-VN')} đ</b></p>
+          <p>Đã tạo hóa đơn với tổng tiền <b>{vnd(result.total_amount)}</b></p>
           <img src={result.qr_url} alt="VietQR" style={{ width: 220, marginBottom: 12 }} />
           <p>Nội dung chuyển khoản: <b>{result.transfer_content}</b></p>
           <Button type="primary" onClick={() => { resetAll(); onClose(); }}>Đóng</Button>
         </div>
       ) : (
         <Form layout="vertical" form={form} onFinish={handleSubmit}>
+          {contracts && !contractProp && (
+            <Form.Item name="contract_id" label="Hợp đồng / phòng" rules={[{ required: true, message: 'Chọn hợp đồng cần lập hóa đơn' }]}>
+              <Select
+                showSearch
+                placeholder={contracts.length ? 'Chọn phòng đang thuê' : 'Chưa có hợp đồng nào đang hiệu lực'}
+                optionFilterProp="label"
+                onChange={handlePickContract}
+                options={contracts.map((c) => ({
+                  value: c.id,
+                  label: `Phòng ${c.room_number} — ${c.tenant_name} (${c.rental_type === 'DAILY' ? `thuê ngày ${fmtDate(c.start_date)} → ${fmtDate(c.end_date)}` : 'thuê tháng'})`,
+                }))}
+              />
+            </Form.Item>
+          )}
           <Form.Item name="period" label="Kỳ hóa đơn (Tháng/Năm)" rules={[{ required: true }]} initialValue={dayjs()}>
             <DatePicker picker="month" format="MM/YYYY" style={{ width: '100%' }} />
           </Form.Item>
@@ -97,163 +137,77 @@ export default function CreateInvoiceModal({ open, onClose, room, contract, onSu
             <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
           </Form.Item>
 
-          {!isDailyRental && (
+          {!contract ? (
+            <Alert type="info" showIcon message="Chọn hợp đồng để nhập tiền điện, nước và phụ phí (thuê tháng) hoặc xem cách tính (thuê ngày)." />
+          ) : isDailyRental ? (
+            <Alert
+              type="info"
+              showIcon
+              message="Hóa đơn thuê ngày chỉ tính tiền phòng theo số ngày thuê nằm trong kỳ; tiền điện, nước và phụ phí bằng 0."
+              description={`Thời gian thuê: ${fmtDate(contract.start_date)} → ${fmtDate(contract.end_date)}. Chọn kỳ hóa đơn (tháng/năm) nằm trong khoảng này.`}
+            />
+          ) : (
             <>
-              <Divider orientation="left" plain>Chỉ số công tơ kỳ trước</Divider>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                <Form.Item name="old_electricity" label="Điện cũ (kWh)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
-                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-                </Form.Item>
-                <Form.Item name="old_water" label="Nước cũ (m³)" rules={[{ required: true }]} style={{ flex: '1 1 140px' }}>
-                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-                </Form.Item>
-              </div>
-
-              <Divider orientation="left" plain>Chỉ số công tơ hiện tại — chọn 1 trong 3 cách</Divider>
+              <Divider orientation="left" plain>Tiền điện, nước — nhập số tiền (VNĐ)</Divider>
               <Tabs
                 activeKey={method}
                 onChange={setMethod}
                 items={[
-                  { key: 'manual', label: 'Gõ tay' },
-                  { key: 'camera', label: <span><CameraOutlined /> Chụp ảnh công tơ</span> },
-                  { key: 'upload', label: <span><UploadOutlined /> Upload ảnh/PDF hóa đơn</span> },
+                  { key: 'manual', label: <span><EditOutlined /> Nhập tay</span> },
+                  { key: 'scan', label: <span><UploadOutlined /> Chụp / tải hóa đơn điện nước (AI đọc số tiền)</span> },
                 ]}
               />
 
-              {method === 'manual' && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
-                  <Form.Item
-                    name="new_electricity"
-                    label="Điện hiện tại (kWh)"
-                    dependencies={['old_electricity']}
-                    rules={[
-                      { required: true },
-                      ({ getFieldValue }) => ({
-                        validator(_, value) {
-                          if (value == null || value >= getFieldValue('old_electricity')) return Promise.resolve();
-                          return Promise.reject(new Error('Chỉ số điện hiện tại không thể thấp hơn kỳ trước.'));
-                        },
-                      }),
-                    ]}
-                    style={{ flex: '1 1 140px' }}
+              {method === 'scan' && (
+                <div style={{ marginBottom: 12 }}>
+                  <Upload.Dragger
+                    accept="image/*,application/pdf"
+                    beforeUpload={handleScan}
+                    showUploadList={false}
+                    maxCount={1}
                   >
-                    <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-                  </Form.Item>
-                  <Form.Item
-                    name="new_water"
-                    label="Nước hiện tại (m³)"
-                    dependencies={['old_water']}
-                    rules={[
-                      { required: true },
-                      ({ getFieldValue }) => ({
-                        validator(_, value) {
-                          if (value == null || value >= getFieldValue('old_water')) return Promise.resolve();
-                          return Promise.reject(new Error('Chỉ số nước hiện tại không thể thấp hơn kỳ trước.'));
-                        },
-                      }),
-                    ]}
-                    style={{ flex: '1 1 140px' }}
-                  >
-                    <InputNumber min={0} precision={0} style={{ width: '100%' }} />
-                  </Form.Item>
+                    <p className="ant-upload-drag-icon"><ScanOutlined /></p>
+                    <p>Kéo thả hoặc bấm để chọn ảnh/PDF hóa đơn tiền điện, tiền nước</p>
+                    <p className="ant-upload-hint">AI sẽ đọc số tiền phải thanh toán và điền vào các ô bên dưới</p>
+                  </Upload.Dragger>
+
+                  {scanning && <Spin style={{ marginTop: 12 }} tip="AI đang đọc hóa đơn..." />}
+
+                  {scanResult && (
+                    <Alert
+                      style={{ marginTop: 12 }}
+                      type={scanResult.confidence === 'LOW' ? 'warning' : 'success'}
+                      message={`Độ tin cậy AI: ${scanResult.confidence || 'N/A'}`}
+                      description="Vui lòng đối chiếu lại số tiền AI đọc được trước khi lưu hóa đơn."
+                    />
+                  )}
                 </div>
               )}
 
-          {(method === 'camera' || method === 'upload') && (
-            <div style={{ marginTop: 12 }}>
-              <Upload.Dragger
-                accept={method === 'camera' ? 'image/*' : 'image/*,application/pdf'}
-                capture={method === 'camera' ? 'environment' : undefined}
-                beforeUpload={handleScan}
-                showUploadList={false}
-                maxCount={1}
-              >
-                <p className="ant-upload-drag-icon"><ScanOutlined /></p>
-                <p>
-                  {method === 'camera'
-                    ? 'Bấm để chụp ảnh công tơ điện/nước'
-                    : 'Kéo thả hoặc bấm để chọn file ảnh/PDF hóa đơn gốc'}
-                </p>
-                <p className="ant-upload-hint">AI sẽ tự động đọc chỉ số và điền vào ô bên dưới</p>
-              </Upload.Dragger>
-
-              {scanning && <Spin style={{ marginTop: 12 }} tip="AI đang đọc chỉ số..." />}
-
-              {scanResult && (
-                <Alert
-                  style={{ marginTop: 12 }}
-                  type={scanResult.confidence === 'LOW' ? 'warning' : 'success'}
-                  message={`Độ tin cậy AI: ${scanResult.confidence || 'N/A'}`}
-                  description="Vui lòng đối chiếu lại chỉ số AI đọc được trước khi lưu hóa đơn."
-                />
-              )}
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
-                <Form.Item
-                  name="new_electricity"
-                  label="Điện hiện tại (kWh) — AI đã điền"
-                  dependencies={['old_electricity']}
-                  rules={[
-                    { required: true },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (value == null || value >= getFieldValue('old_electricity')) return Promise.resolve();
-                        return Promise.reject(new Error('Chỉ số điện hiện tại không thể thấp hơn kỳ trước.'));
-                      },
-                    }),
-                  ]}
-                  style={{ flex: '1 1 140px' }}
-                >
-                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                <Form.Item name="electricity" label="Tiền điện (đ)" rules={[{ required: true, message: 'Nhập tiền điện' }]} style={{ flex: '1 1 200px' }}>
+                  <InputNumber {...moneyInputProps} placeholder="VD: 350000" />
                 </Form.Item>
-                <Form.Item
-                  name="new_water"
-                  label="Nước hiện tại (m³) — AI đã điền"
-                  dependencies={['old_water']}
-                  rules={[
-                    { required: true },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (value == null || value >= getFieldValue('old_water')) return Promise.resolve();
-                        return Promise.reject(new Error('Chỉ số nước hiện tại không thể thấp hơn kỳ trước.'));
-                      },
-                    }),
-                  ]}
-                  style={{ flex: '1 1 140px' }}
-                >
-                  <InputNumber min={0} precision={0} style={{ width: '100%' }} />
+                <Form.Item name="water" label="Tiền nước (đ)" rules={[{ required: true, message: 'Nhập tiền nước' }]} style={{ flex: '1 1 200px' }}>
+                  <InputNumber {...moneyInputProps} placeholder="VD: 100000" />
                 </Form.Item>
               </div>
-            </div>
-              )}
+              <Form.Item name="other_fee" label="Phụ phí khác (đ)" initialValue={0}>
+                <InputNumber {...moneyInputProps} />
+              </Form.Item>
             </>
-          )}
-
-          {isDailyRental ? (
-            <Alert
-              type="info"
-              showIcon
-              message="Hóa đơn thuê ngày chỉ tính tiền phòng theo số ngày thuê; điện, nước và phí phát sinh bằng 0."
-            />
-          ) : (
-            <Form.Item name="other_fee" label="Phí phát sinh khác (đ)" initialValue={0}>
-              <InputNumber min={0} style={{ width: '100%' }} />
-            </Form.Item>
           )}
 
           {contract && (
             <Descriptions size="small" bordered column={1} style={{ marginTop: 12 }}>
               {isDailyRental ? (
-                <>
-                  <Descriptions.Item label="Đơn giá thuê ngày">{Number(contract.daily_rate).toLocaleString('vi-VN')} đ/ngày</Descriptions.Item>
-                  <Descriptions.Item label="Tiền điện">0 đ</Descriptions.Item>
-                  <Descriptions.Item label="Tiền nước">0 đ</Descriptions.Item>
-                </>
+                <Descriptions.Item label="Đơn giá thuê ngày">{vnd(contract.daily_fee)}/ngày</Descriptions.Item>
               ) : (
                 <>
-                  <Descriptions.Item label="Đơn giá điện">{contract.electricity_rate?.toLocaleString('vi-VN')} đ/kWh</Descriptions.Item>
-                  <Descriptions.Item label="Đơn giá nước">{contract.water_rate?.toLocaleString('vi-VN')} đ/m³</Descriptions.Item>
-                  <Descriptions.Item label="Phí dịch vụ">{Number(contract.service_fee || 0).toLocaleString('vi-VN')} đ</Descriptions.Item>
+                  <Descriptions.Item label="Tiền phòng">{vnd(roomFee)}</Descriptions.Item>
+                  <Descriptions.Item label="Tổng dự kiến">
+                    <b style={{ color: '#1d4ed8' }}>{vnd(estimatedTotal)}</b>
+                  </Descriptions.Item>
                 </>
               )}
             </Descriptions>

@@ -27,7 +27,24 @@ class InvoiceController extends BaseController {
       return this.handleError(res, err, 'Lỗi máy chủ khi tạo hóa đơn.');
     }
   };
-  //tạo đơn ngắn hạn
+  // sửa hóa đơn
+  updateInvoice = async (req, res) => {
+    try {
+      const result = await this.invoiceService.updateInvoice(req.params.id, req.body);
+      return res.json({ ...result, message: 'Cập nhật hóa đơn thành công.' });
+    } catch (err) {
+      return this.handleError(res, err, 'Lỗi máy chủ khi cập nhật hóa đơn.');
+    }
+  };
+  // xóa hóa đơn
+  deleteInvoice = async (req, res) => {
+    try {
+      await this.invoiceService.deleteInvoice(req.params.id);
+      return res.json({ message: 'Đã xóa hóa đơn.' });
+    } catch (err) {
+      return this.handleError(res, err, 'Lỗi máy chủ khi xóa hóa đơn.');
+    }
+  };
 
   // lấy tất cả hóa đơn (route chỉ cho phép ADMIN)
   getAllInvoices = async (req, res) => {
@@ -42,7 +59,7 @@ class InvoiceController extends BaseController {
   // lấy đơn theo tenant
   getTenantInvoices = async (req, res) => {
     try {
-      const rows = await this.invoiceService.listForTenant(req.user.id);
+      const rows = await this.invoiceService.listForTenant(req.user.id, { from: req.query.from, to: req.query.to });
       return res.json(rows);
     } catch (err) {
       return this.handleError(res, err);
@@ -51,7 +68,7 @@ class InvoiceController extends BaseController {
   // thanh toán hóa đơn
   payInvoice = async (req, res) => {
     try {
-      await this.invoiceService.markPaid(req.params.id);
+      await this.invoiceService.markPaid(req.params.id, req.body && req.body.payment_method);
       return res.json({ message: 'Đã cập nhật hóa đơn sang trạng thái Đã thanh toán.' });
     } catch (err) {
       return this.handleError(res, err);

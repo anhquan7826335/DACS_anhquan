@@ -11,7 +11,9 @@ const upload = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Định dạng file không được hỗ trợ: ${file.mimetype}`));
+      const err = new Error(`Định dạng file không được hỗ trợ: ${file.mimetype}`);
+      err.status = 400;
+      cb(err);
     }
   },
 });

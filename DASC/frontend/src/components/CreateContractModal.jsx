@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Form, Input, InputNumber, DatePicker, message, AutoComplete } from 'antd';
+import { useEffect, useState } from 'react';
+import { Modal, Form, InputNumber, DatePicker, message, AutoComplete, Radio, Select } from 'antd';
 import api from '../api/axios';
 import dayjs from 'dayjs';
 
@@ -8,6 +8,15 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
   const [tenantOptions, setTenantOptions] = useState([]);
   const [selectedTenant, setSelectedTenant] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [emptyRooms, setEmptyRooms] = useState([]);
+
+  // Không truyền sẵn phòng (mở từ trang Hợp đồng): cho admin chọn trong các phòng đang trống
+  useEffect(() => {
+    if (!open || room) return;
+    api.get('/rooms', { params: { status: 'EMPTY' } })
+      .then(({ data }) => setEmptyRooms(data))
+      .catch(() => message.error('Không tải được danh sách phòng trống.'));
+  }, [open, room]);
 
   async function searchTenant(keyword) {
     if (!keyword || keyword.length < 3) { setTenantOptions([]); return; }
@@ -23,7 +32,6 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
 
   function handleSelectTenant(_, option) {
     setSelectedTenant(option.tenant);
-    form.setFieldsValue({ tenant_phone: option.tenant.phone });
   }
 
   async function handleSubmit(values) {
@@ -34,19 +42,17 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
     setSubmitting(true);
     try {
       await api.post('/contracts', {
-        room_id: room.id,
+        room_id: room ? room.id : values.room_id,
         tenant_id: selectedTenant.id,
         deposit: values.deposit,
-        electricity_rate: values.electricity_rate,
-        water_rate: values.water_rate,
-        service_fee: values.service_fee || 0,
-        tenant_phone: values.tenant_phone,
+        rental_type: values.rental_type,
         start_date: values.dates[0].format('YYYY-MM-DD'),
         end_date: values.dates[1].format('YYYY-MM-DD'),
       });
       message.success('Tạo hợp đồng thành công!');
       form.resetFields();
       setSelectedTenant(null);
+      setTenantOptions([]);
       onSuccess?.();
     } catch (err) {
       message.error(err.response?.data?.message || 'Không thể tạo hợp đồng.');
@@ -57,7 +63,7 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
 
   return (
     <Modal
-      title={`Tạo hợp đồng thuê - Phòng ${room?.room_number}`}
+      title={room ? `Tạo hợp đồng - Phòng ${room.room_number}` : 'Tạo hợp đồng'}
       open={open}
       onCancel={onClose}
       onOk={() => form.submit()}
@@ -66,6 +72,14 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
       width={560}
     >
       <Form layout="vertical" form={form} onFinish={handleSubmit}>
+        {!room && (
+          <Form.Item name="room_id" label="Phòng (đang trống)" rules={[{ required: true, message: 'Chọn phòng' }]}>
+            <Select
+              placeholder={emptyRooms.length ? 'Chọn phòng' : 'Hiện không có phòng trống'}
+              options={emptyRooms.map((r) => ({ value: r.id, label: `Phòng ${r.room_number} · tầng ${r.floor}` }))}
+            />
+          </Form.Item>
+        )}
         <Form.Item label="Tìm khách thuê (theo email hoặc SĐT đã đăng ký)" required>
           <AutoComplete
             options={tenantOptions}
@@ -79,19 +93,11 @@ export default function CreateContractModal({ open, onClose, room, onSuccess }) 
             Đã chọn: <b>{selectedTenant.full_name}</b> — {selectedTenant.email}
           </div>
         )}
-        <Form.Item name="tenant_phone" label="SĐT khách thuê" rules={[{ required: true }]}>
-          <Input />
+        <Form.Item name="rental_type" label="Hình thức thuê" initialValue="MONTHLY">
+          <Radio.Group optionType="button" buttonStyle="solid"
+            options={[{ value: 'MONTHLY', label: 'Theo tháng' }, { value: 'DAILY', label: 'Theo ngày' }]} />
         </Form.Item>
-        <Form.Item name="deposit" label="Tiền cọc (đ)" rules={[{ required: true }]}>
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="electricity_rate" label="Đơn giá điện (đ/kWh)" rules={[{ required: true }]}>
-          <InputNumber min={0} style={{ width: '100%' }} placeholder="VD: 3500" />
-        </Form.Item>
-        <Form.Item name="water_rate" label="Đơn giá nước (đ/m³)" rules={[{ required: true }]}>
-          <InputNumber min={0} style={{ width: '100%' }} placeholder="VD: 15000" />
-        </Form.Item>
-        <Form.Item name="service_fee" label="Phí dịch vụ khác (đ/tháng)">
+        <Form.Item name="deposit" label="Tiền cọc (đ)" rules={[{ required: true }]} initialValue={0}>
           <InputNumber min={0} style={{ width: '100%' }} />
         </Form.Item>
         <Form.Item

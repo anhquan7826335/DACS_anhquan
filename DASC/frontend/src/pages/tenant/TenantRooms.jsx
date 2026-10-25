@@ -1,115 +1,207 @@
-import { useEffect, useState } from 'react';
-import { Alert, Button, DatePicker, Empty, message, Modal, Table, Typography } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Button, Card, Col, DatePicker, Empty, Image, InputNumber, message, Modal,
+  Radio, Row, Space, Tag, Typography,
+} from 'antd';
+import { HomeOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../api/axios';
+import { Link } from 'react-router-dom';
+import { dailyRateOf, vnd } from '../../utils/format';
 
-const { Text, Title } = Typography;
+const { Text, Title, Paragraph } = Typography;
+
+function RoomImage({ src, height = 180 }) {
+  if (src) {
+    return <Image src={src} alt="Ảnh phòng" height={height} width="100%" style={{ objectFit: 'cover' }} />;
+  }
+  return (
+    <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5', color: '#bfbfbf', fontSize: 40 }}>
+      <HomeOutlined />
+    </div>
+  );
+}
 
 export default function TenantRooms() {
   const [rooms, setRooms] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [dates, setDates] = useState([dayjs(), dayjs()]);
+  const [startDate, setStartDate] = useState(dayjs());
+  const [rentalType, setRentalType] = useState('MONTHLY');
+  const [days, setDays] = useState(1);
+  const [months, setMonths] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
-  async function fetchRooms() {
+  async function fetchAll() {
     setLoading(true);
     try {
-      const { data } = await api.get('/rooms', { params: { status: 'EMPTY' } });
-      setRooms(data);
+      const [roomsRes, reqRes] = await Promise.all([api.get('/rooms'), api.get('/contracts/mine')]);
+      setRooms(roomsRes.data);
+      setRequests(reqRes.data);
     } catch (err) {
-      message.error(err.response?.data?.message || 'Lỗi tải danh sách phòng trống.');
+      message.error(err.response?.data?.message || 'Lỗi tải dữ liệu phòng.');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { fetchRooms(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  const rentalDays = dates?.[0] && dates?.[1] ? dates[1].diff(dates[0], 'day') + 1 : 0;
-  const dailyRate = selectedRoom ? Number(selectedRoom.price) / 30 : 0;
-  const totalRent = Math.round(dailyRate * rentalDays);
+  const pendingRoomIds = useMemo(
+    () => new Set(requests.filter((r) => r.status === 'PENDING').map((r) => r.room_id)),
+    [requests],
+  );
+  const pendingCount = pendingRoomIds.size;
 
-  async function submitRental() {
-    if (!selectedRoom || !dates?.[0] || !dates?.[1]) return;
+  function openRoom(room) {
+    setSelectedRoom(room);
+    setStartDate(dayjs());
+    setDays(1);
+    setMonths(1);
+    setRentalType('MONTHLY');
+  }
+
+  const dailyRate = selectedRoom ? (selectedRoom.daily_rate ?? dailyRateOf(selectedRoom.price)) : 0;
+  const isDaily = rentalType === 'DAILY';
+  const qty = isDaily ? days : months;
+  const validQty = Number.isInteger(qty) && qty >= 1 && qty <= (isDaily ? 365 : 36);
+  const endDate = startDate && validQty
+    ? (isDaily ? startDate.add(days - 1, 'day') : startDate.add(months, 'month').subtract(1, 'day'))
+    : null;
+  const totalRent = validQty && selectedRoom ? (isDaily ? dailyRate * days : Number(selectedRoom.price) * months) : 0;
+
+  async function submitRequest() {
+    if (!selectedRoom || !startDate || !validQty) return;
     setSubmitting(true);
     try {
-      const { data } = await api.post('/contracts/daily', {
+      await api.post('/contracts/request', {
         room_id: selectedRoom.id,
-        start_date: dates[0].format('YYYY-MM-DD'),
-        end_date: dates[1].format('YYYY-MM-DD'),
+        rental_type: rentalType,
+        start_date: startDate.format('YYYY-MM-DD'),
+        ...(isDaily ? { days } : { months }),
       });
-      message.success(`Thuê phòng thành công. Tiền phòng ${data.total_rent.toLocaleString('vi-VN')} đ.`);
+      message.success('Đã gửi yêu cầu thuê phòng. Vui lòng chờ chủ trọ duyệt.');
       setSelectedRoom(null);
-      await fetchRooms();
+      await fetchAll();
     } catch (err) {
-      message.error(err.response?.data?.message || 'Không thể thuê phòng.');
+      message.error(err.response?.data?.message || 'Không thể gửi yêu cầu thuê phòng.');
     } finally {
       setSubmitting(false);
     }
   }
 
-  const columns = [
-    { title: 'Phòng', dataIndex: 'room_number', key: 'room_number', render: (value) => <b>{value}</b> },
-    { title: 'Tầng', dataIndex: 'floor', key: 'floor', width: 80 },
-    {
-      title: 'Giá thuê ngày',
-      dataIndex: 'price',
-      key: 'daily_rate',
-      render: (price) => `${(Number(price) / 30).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} đ/ngày`,
-    },
-    { title: 'Diện tích', dataIndex: 'area', key: 'area', render: (value) => value ? `${value} m²` : '-' },
-    { title: 'Mô tả', dataIndex: 'description', key: 'description', render: (value) => value || '-' },
-    {
-      title: '',
-      key: 'action',
-      render: (_, room) => <Button type="primary" onClick={() => setSelectedRoom(room)}>Chọn thuê</Button>,
-    },
-  ];
+  const roomsTab = rooms.length === 0 && !loading ? (
+    <Empty description="Hiện không có phòng trống." />
+  ) : (
+    <Row gutter={[16, 16]}>
+      {rooms.map((room) => {
+        const requested = pendingRoomIds.has(room.id);
+        return (
+          <Col key={room.id} xs={24} sm={12} lg={8}>
+            <Card
+              hoverable
+              loading={loading}
+              cover={<RoomImage src={room.image_url} />}
+              actions={[
+                requested
+                  ? <Link key="p" to="/tenant/contracts"><Tag color="gold">Đã gửi yêu cầu · chờ duyệt</Tag></Link>
+                  : <Button key="rent" type="primary" onClick={() => openRoom(room)}>Thuê phòng</Button>,
+              ]}
+            >
+              <Card.Meta
+                title={<span>Phòng {room.room_number} <Text type="secondary" style={{ fontWeight: 400 }}>· Tầng {room.floor}</Text></span>}
+                description={
+                  <div>
+                    <div style={{ color: '#1d4ed8', fontWeight: 600, fontSize: 16 }}>
+                      {vnd(room.daily_rate ?? dailyRateOf(room.price))}/ngày
+                    </div>
+                    <Text type="secondary">{vnd(room.price)}/tháng{room.area ? ` · ${room.area} m²` : ''}</Text>
+                    <Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ margin: '8px 0 0' }}>
+                      {room.description || 'Chưa có mô tả.'}
+                    </Paragraph>
+                  </div>
+                }
+              />
+            </Card>
+          </Col>
+        );
+      })}
+    </Row>
+  );
 
   return (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0 }}>Thuê phòng theo ngày</Title>
-        <Button icon={<ReloadOutlined />} onClick={fetchRooms}>Làm mới</Button>
+        <Title level={3} style={{ margin: 0 }}>Thuê phòng</Title>
+        <Button icon={<ReloadOutlined />} onClick={fetchAll}>Làm mới</Button>
       </div>
-      {rooms.length === 0 && !loading ? (
-        <Empty description="Hiện không có phòng trống." />
-      ) : (
-        <Table rowKey="id" columns={columns} dataSource={rooms} loading={loading} bordered scroll={{ x: 700 }} />
-      )}
+
+      <Paragraph type="secondary">
+        Chọn phòng trống, gửi yêu cầu thuê theo ngày hoặc theo tháng. Theo dõi yêu cầu ở mục{' '}
+        <Link to="/tenant/contracts">Hợp đồng của tôi</Link>.
+      </Paragraph>
+      {pendingCount > 0 && <Tag color="gold" style={{ marginBottom: 12 }}>{pendingCount} yêu cầu đang chờ duyệt</Tag>}
+      {roomsTab}
+
       <Modal
-        title={`Đặt thuê phòng ${selectedRoom?.room_number || ''}`}
+        title={`Thuê phòng ${selectedRoom?.room_number || ''}`}
         open={!!selectedRoom}
         onCancel={() => setSelectedRoom(null)}
-        onOk={submitRental}
+        onOk={submitRequest}
         confirmLoading={submitting}
-        okButtonProps={{ disabled: !dates?.[0] || !dates?.[1] }}
-        okText="Xác nhận thuê"
-        cancelText="Hủy"
+        okButtonProps={{ disabled: !startDate || !validQty }}
+        okText="Gửi yêu cầu thuê"
+        cancelText="Đóng"
+        width={560}
       >
         {selectedRoom && (
-          <>
-            <div style={{ marginBottom: 16 }}>
-              <Text type="secondary">Chọn thời gian thuê (tính cả ngày bắt đầu và ngày kết thúc):</Text>
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <RoomImage src={selectedRoom.image_url} height={220} />
+            <div>
+              <Text type="secondary">Tầng {selectedRoom.floor}{selectedRoom.area ? ` · ${selectedRoom.area} m²` : ''}</Text>
+              <div style={{ color: '#1d4ed8', fontWeight: 600, fontSize: 18 }}>{vnd(dailyRate)}/ngày</div>
+              <Text type="secondary">({vnd(selectedRoom.price)}/tháng)</Text>
+              {selectedRoom.description && <Paragraph style={{ margin: '8px 0 0' }}>{selectedRoom.description}</Paragraph>}
             </div>
-            <DatePicker.RangePicker
-              value={dates}
-              onChange={setDates}
-              disabledDate={(date) => date.isBefore(dayjs().startOf('day'))}
-              format="DD/MM/YYYY"
-              style={{ width: '100%', marginBottom: 16 }}
-            />
-            {rentalDays > 0 && (
-              <div style={{ lineHeight: 2 }}>
-                <div>Giá/ngày: <b>{dailyRate.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} đ</b></div>
-                <div>Số ngày thuê: <b>{rentalDays} ngày</b></div>
-                <div>Tổng tiền phòng: <b>{totalRent.toLocaleString('vi-VN')} đ</b></div>
-                <Text type="secondary">Điện: 0 đ · Nước: 0 đ · Phí dịch vụ: 0 đ</Text>
+
+            <Radio.Group value={rentalType} onChange={(e) => setRentalType(e.target.value)} optionType="button" buttonStyle="solid">
+              <Radio.Button value="MONTHLY">Thuê theo tháng</Radio.Button>
+              <Radio.Button value="DAILY">Thuê theo ngày</Radio.Button>
+            </Radio.Group>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <div style={{ marginBottom: 4 }}>Ngày bắt đầu</div>
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  allowClear={false}
+                  disabledDate={(d) => d.isBefore(dayjs().startOf('day'))}
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div style={{ flex: '1 1 200px' }}>
+                <div style={{ marginBottom: 4 }}>{isDaily ? 'Số ngày thuê' : 'Số tháng thuê'}</div>
+                {isDaily
+                  ? <InputNumber min={1} max={365} precision={0} value={days} onChange={setDays} addonAfter="ngày" style={{ width: '100%' }} />
+                  : <InputNumber min={1} max={36} precision={0} value={months} onChange={setMonths} addonAfter="tháng" style={{ width: '100%' }} />}
+              </div>
+            </div>
+
+            {endDate && (
+              <div style={{ lineHeight: 2, background: '#f5f7fb', padding: '8px 12px', borderRadius: 8 }}>
+                <div>Thời gian thuê: <b>{startDate.format('DD/MM/YYYY')} → {endDate.format('DD/MM/YYYY')}</b> ({qty} {isDaily ? 'ngày' : 'tháng'})</div>
+                <div>Tiền phòng dự kiến: <b style={{ color: '#1d4ed8' }}>{vnd(totalRent)}</b></div>
+                <Text type="secondary">
+                  {isDaily
+                    ? 'Thuê theo ngày chỉ tính tiền phòng.'
+                    : 'Thuê theo tháng: tiền điện, nước và tiền cọc do chủ trọ xác nhận khi duyệt.'} Yêu cầu sẽ được gửi cho chủ trọ duyệt.
+                </Text>
               </div>
             )}
-          </>
+          </Space>
         )}
       </Modal>
     </div>

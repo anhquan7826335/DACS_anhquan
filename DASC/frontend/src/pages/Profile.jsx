@@ -1,85 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  Avatar,
-  Button,
-  Card,
-  Descriptions,
-  Empty,
-  Form,
-  Input,
-  Menu,
-  message,
-  Space,
-  Spin,
-  Typography,
-  Upload,
-} from 'antd';
-import {
-  DownloadOutlined,
-  FileTextOutlined,
-  LockOutlined,
-  ReloadOutlined,
-  UploadOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { useState } from 'react';
+import { Avatar, Button, Card, Form, Input, Menu, message, Typography, Upload } from 'antd';
+import { LockOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import '../css/Profile.css';
 
 const { Title, Text } = Typography;
 
-function toCsvCell(value) {
-  let text = value == null ? '' : String(value);
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-  return `"${text.replaceAll('"', '""')}"`;
-}
-
-function exportUtilityUsage(invoices) {
-  const rows = [
-    ['Tháng', 'Năm', 'Phòng', 'Điện tiêu thụ (kWh)', 'Nước tiêu thụ (m³)', 'Tiền điện (đ)', 'Tiền nước (đ)'],
-    ...invoices.map((invoice) => [
-      invoice.month,
-      invoice.year,
-      invoice.room_number,
-      invoice.electricity,
-      invoice.water,
-      invoice.electricity_fee,
-      invoice.water_fee,
-    ]),
-  ];
-  const csv = `\uFEFF${rows.map((row) => row.map(toCsvCell).join(',')).join('\r\n')}`;
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'lich-su-dien-nuoc.csv';
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
 export default function Profile() {
   const { user, updateUser } = useAuth();
   const [form] = Form.useForm();
   const [section, setSection] = useState('profile');
-  const [invoices, setInvoices] = useState([]);
-  const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [infoForm] = Form.useForm();
+  const [savingInfo, setSavingInfo] = useState(false);
   const isTenant = user?.role === 'TENANT';
 
-  const fetchInvoices = useCallback(async () => {
-    setLoadingInvoices(true);
+  async function handleSaveInfo(values) {
+    setSavingInfo(true);
     try {
-      const { data } = await api.get('/invoices/tenant');
-      setInvoices(data);
+      const { data } = await api.put('/users/me', values);
+      updateUser({ ...user, ...data.user });
+      message.success(data.message || 'Đã cập nhật thông tin.');
     } catch (error) {
-      message.error(error.response?.data?.message || 'Không tải được lịch sử điện nước.');
+      message.error(error.response?.data?.message || 'Không cập nhật được thông tin.');
     } finally {
-      setLoadingInvoices(false);
+      setSavingInfo(false);
     }
-  }, []);
-
-  useEffect(() => {
-    if (isTenant) fetchInvoices();
-  }, [fetchInvoices, isTenant]);
+  }
 
   async function handleChangePassword(values) {
     setChangingPassword(true);
@@ -135,9 +83,6 @@ export default function Profile() {
       icon: <LockOutlined />,
       label: 'Mật khẩu',
     },
-    ...(isTenant
-      ? [{ key: 'utilities', icon: <FileTextOutlined />, label: 'Lịch sử điện nước' }]
-      : []),
   ];
 
   return (
@@ -200,12 +145,25 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Descriptions className="profile-details" column={{ xs: 1, sm: 2 }}>
-                <Descriptions.Item label="Họ và tên">{user?.full_name || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Email">{user?.email || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Số điện thoại">{user?.phone || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Vai trò">{isTenant ? 'Khách thuê' : 'Quản trị viên'}</Descriptions.Item>
-              </Descriptions>
+              <Form
+                form={infoForm}
+                layout="vertical"
+                onFinish={handleSaveInfo}
+                initialValues={{ full_name: user?.full_name, email: user?.email, phone: user?.phone }}
+                className="profile-password-form"
+              >
+                <Form.Item name="full_name" label="Họ và tên" rules={[{ required: true, whitespace: true, message: 'Nhập họ tên.' }]}>
+                  <Input maxLength={100} />
+                </Form.Item>
+                <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Email không hợp lệ.' }]}>
+                  <Input maxLength={100} />
+                </Form.Item>
+                <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true, pattern: /^[0-9+\s().-]{8,20}$/, message: 'Số điện thoại không hợp lệ.' }]}>
+                  <Input maxLength={20} />
+                </Form.Item>
+                <Form.Item label="Vai trò"><Text>{isTenant ? 'Khách thuê' : 'Quản trị viên'}</Text></Form.Item>
+                <Button type="primary" htmlType="submit" loading={savingInfo}>Lưu thông tin</Button>
+              </Form>
             </Card>
           )}
 
@@ -258,39 +216,6 @@ export default function Profile() {
             </Card>
           )}
 
-          {section === 'utilities' && isTenant && (
-            <Card className="profile-settings-card">
-              <div className="profile-card-heading">
-                <div>
-                  <Title level={4}>Lịch sử điện nước</Title>
-                  <Text type="secondary">Xem hoặc tải xuống lịch sử chỉ số và chi phí theo từng tháng.</Text>
-                </div>
-                <Space>
-                  <Button icon={<ReloadOutlined />} onClick={fetchInvoices} loading={loadingInvoices}>
-                    Làm mới
-                  </Button>
-                  <Button
-                    type="primary"
-                    icon={<DownloadOutlined />}
-                    disabled={invoices.length === 0}
-                    onClick={() => exportUtilityUsage(invoices)}
-                  >
-                    Xuất file CSV
-                  </Button>
-                </Space>
-              </div>
-
-              <Spin spinning={loadingInvoices}>
-                {invoices.length === 0 ? (
-                  <Empty description="Chưa có dữ liệu điện nước để xuất." />
-                ) : (
-                  <Text type="secondary">
-                    File tải về gồm chỉ số đầu kỳ, cuối kỳ, mức tiêu thụ và tiền điện nước theo từng tháng.
-                  </Text>
-                )}
-              </Spin>
-            </Card>
-          )}
         </main>
       </div>
     </div>

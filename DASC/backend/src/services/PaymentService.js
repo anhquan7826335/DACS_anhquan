@@ -1,3 +1,5 @@
+const { nowInAppTz } = require('../utils/date');
+
 /**
  * PaymentService — Service tích hợp thanh toán:
  *  1. Sinh mã QR VietQR tự động cho từng hóa đơn.
@@ -32,7 +34,7 @@ class PaymentService {
    * đối chiếu số tiền, rồi tự động đánh dấu PAID (Auto-Matching / gạch nợ tự động).
    * Trả về hóa đơn đã khớp, hoặc throw lỗi nếu không tìm thấy / số tiền không đủ.
    */
-  async processBankWebhook({ content, amount }) {
+  async processBankWebhook({ content, amount, transaction_ref } = {}) {
     if (!content) throw new Error('Thiếu nội dung chuyển khoản.');
 
     const unpaidInvoices = await this.invoiceRepository.findAllUnpaid();
@@ -54,7 +56,23 @@ class PaymentService {
       throw err;
     }
 
-    await this.invoiceRepository.markPaid(matched.id);
+    try {
+      const affected = await this.invoiceRepository.markPaid(matched.id, {
+        paidAt: nowInAppTz(), method: 'BANK_TRANSFER', transactionRef: transaction_ref ? String(transaction_ref).slice(0, 100) : null,
+      });
+      if (!affected) {
+        const err = new Error('Hóa đơn đã được thanh toán trước đó.');
+        err.status = 409;
+        throw err;
+      }
+    } catch (e) {
+      if (e && e.code === 'ER_DUP_ENTRY') {
+        const err = new Error('Giao dịch này đã được ghi nhận trước đó.');
+        err.status = 409;
+        throw err;
+      }
+      throw e;
+    }
     return matched;
   }
 }

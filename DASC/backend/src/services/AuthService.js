@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { profileFields } = require('../utils/validators');
 
 /**
  * AuthService — chứa toàn bộ business logic xác thực: hash mật khẩu, so khớp,
@@ -37,10 +38,22 @@ class AuthService {
       err.status = 401;
       throw err;
     }
+    if (!row.is_active) {
+      const err = new Error('Tài khoản đã bị khóa. Vui lòng liên hệ chủ trọ.');
+      err.status = 403;
+      throw err;
+    }
     return { token: this._signToken(user), user: user.toPublicJSON() };
   }
 
-  async register({ full_name, email, phone, password, role }) {
+  async register(body = {}) {
+    const { password } = body;
+    const { full_name, email, phone } = { ...body, ...profileFields(body) };
+    if (typeof password !== 'string' || password.length < 6) {
+      const err = new Error('Mật khẩu phải có ít nhất 6 ký tự.');
+      err.status = 400;
+      throw err;
+    }
     const existing = await this.userRepository.findByEmailOrPhone(email, phone);
     if (existing) {
       const err = new Error('Email hoặc số điện thoại đã được sử dụng.');

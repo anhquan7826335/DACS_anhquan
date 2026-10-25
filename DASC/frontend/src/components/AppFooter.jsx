@@ -16,6 +16,7 @@ export default function AppFooter() {
         title: 'QUẢN LÝ',
         links: [
           { label: 'Phòng trọ', to: '/admin/rooms' },
+          { label: 'Hợp đồng', to: '/admin/contracts' },
           { label: 'Hóa đơn', to: '/admin/invoices' },
           { label: 'Sự cố', to: '/admin/tickets' },
         ],

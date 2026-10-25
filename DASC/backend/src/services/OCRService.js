@@ -3,12 +3,14 @@ const axios = require('axios');
 /**
  * OCRService — Service tích hợp Gemini / OpenAI Vision API.
  * Ưu tiên Gemini nếu có GEMINI_API_KEY, fallback sang OpenAI nếu có OPENAI_API_KEY.
- * Dùng cho 2 use-case: (1) đọc chỉ số điện/nước từ ảnh/PDF, (2) phân tích ảnh/video sự cố kỹ thuật.
+ * Dùng cho 2 use-case: (1) đọc SỐ TIỀN điện/nước từ ảnh/PDF hóa đơn, (2) phân tích ảnh/video sự cố kỹ thuật.
  */
 class OCRService {
   constructor({ geminiApiKey, openaiApiKey } = {}) {
     this.geminiApiKey = geminiApiKey;
     this.openaiApiKey = openaiApiKey;
+    // Giới hạn token đầu ra của trợ lý. Model dạng "thinking" tính cả token suy luận vào đây nên cần để rộng.
+    this.maxOutputTokens = Number(process.env.AI_MAX_OUTPUT_TOKENS) || 4096;
   }
 
   getProvider() {
@@ -76,28 +78,42 @@ Chỉ trả lời các câu hỏi liên quan đến thuê phòng, hợp đồng,
 bảo trì và báo sự cố. Trả lời bằng tiếng Việt, ngắn gọn, thực tế và dễ hiểu.
 Không tự bịa thông tin tài khoản, số tiền, ngày hạn hoặc chính sách cụ thể nếu không có trong ngữ cảnh.
 Nếu câu hỏi cần chủ trọ xác nhận, hãy nói rõ người dùng nên liên hệ chủ trọ.
-
+Zalo chủ trọ: 0374250112, email chủ trọ: lquankk@gmail.com
 Thông tin người dùng hiện tại: ${JSON.stringify(context)}
 Lịch sử gần đây:
 ${historyText}
 
 Câu hỏi mới: ${question}`;
 
+    const fallback = 'Xin lỗi, trợ lý chưa có câu trả lời.';
     if (provider === 'gemini') {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.getGeminiModel()}:generateContent?key=${this.geminiApiKey}`;
       const { data } = await axios.post(url, {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 3900 },
+        generationConfig: { temperature: 0.3, maxOutputTokens: this.maxOutputTokens },
       });
-      return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Xin lỗi, trợ lý chưa có câu trả lời.';
+      const candidate = data.candidates?.[0];
+      if (candidate?.finishReason === 'MAX_TOKENS') {
+        console.warn(`[AI] Gemini bị cắt do chạm giới hạn ${this.maxOutputTokens} token (tăng AI_MAX_OUTPUT_TOKENS nếu cần).`);
+      }
+      // Ghép mọi phần text (model có thể trả nhiều part), bỏ các part "thought" nếu có.
+      const text = (candidate?.content?.parts || [])
+        .filter((part) => !part.thought && typeof part.text === 'string')
+        .map((part) => part.text)
+        .join('')
+        .trim();
+      return text || fallback;
     }
 
     const { data } = await axios.post(
       'https://api.openai.com/v1/chat/completions',
-      { model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }], max_tokens: 800 },
+      { model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }], max_tokens: this.maxOutputTokens },
       { headers: { Authorization: `Bearer ${this.openaiApiKey}` } }
     );
-    return data.choices?.[0]?.message?.content?.trim() || 'Xin lỗi, trợ lý chưa có câu trả lời.';
+    if (data.choices?.[0]?.finish_reason === 'length') {
+      console.warn(`[AI] OpenAI bị cắt do chạm giới hạn ${this.maxOutputTokens} token (tăng AI_MAX_OUTPUT_TOKENS nếu cần).`);
+    }
+    return data.choices?.[0]?.message?.content?.trim() || fallback;
   }
 
   /** @private */
@@ -110,18 +126,19 @@ Câu hỏi mới: ${question}`;
   }
 
   /**
-   * Bóc tách chỉ số điện/nước từ ảnh công tơ hoặc ảnh/PDF hóa đơn gốc.
+   * Bóc tách SỐ TIỀN điện/nước phải thanh toán từ ảnh/PDF hóa đơn điện nước gốc.
    */
-  async extractMeterReading(imageBase64, mimeType) {
-    const prompt = `Bạn là hệ thống OCR đọc chỉ số công tơ điện/nước hoặc hóa đơn điện nước tại Việt Nam.
+  async extractBillAmounts(imageBase64, mimeType) {
+    const prompt = `Bạn là hệ thống OCR đọc HÓA ĐƠN TIỀN ĐIỆN / TIỀN NƯỚC tại Việt Nam.
 Hãy đọc ảnh/tài liệu được đính kèm và trả về JSON theo đúng schema sau:
 {
-  "new_electricity": number hoặc null,
-  "new_water": number hoặc null,
+  "electricity_amount": số tiền điện phải thanh toán (VNĐ, số nguyên, không có dấu chấm/phẩy ngăn cách) hoặc null,
+  "water_amount": số tiền nước phải thanh toán (VNĐ, số nguyên, không có dấu chấm/phẩy ngăn cách) hoặc null,
   "confidence": "HIGH" | "MEDIUM" | "LOW",
   "raw_text": "toàn bộ text nhận diện được từ ảnh, để chủ trọ đối chiếu thủ công nếu cần"
 }
-Nếu ảnh chỉ có 1 trong 2 chỉ số, để giá trị còn lại là null.`;
+Chỉ lấy SỐ TIỀN phải thanh toán (tổng cộng, đã gồm thuế/phí nếu có). KHÔNG lấy chỉ số công tơ hay lượng tiêu thụ (kWh, m3).
+Nếu ảnh chỉ có 1 trong 2 loại hóa đơn, hoặc không thấy số tiền, để giá trị tương ứng là null.`;
     return this._callVisionJSON(imageBase64, mimeType, prompt);
   }
 

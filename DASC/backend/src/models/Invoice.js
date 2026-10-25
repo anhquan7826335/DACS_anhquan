@@ -1,15 +1,14 @@
 /**
  * Model: Invoice — Entity ánh xạ từ bảng `invoices`.
+ * Mọi cột tiền đều tính bằng VNĐ: tiền điện/nước là SỐ TIỀN (không phải chỉ số công tơ).
  * Chứa sẵn phương thức tính tiền (thuộc phạm vi entity — công thức tính không đổi
- * bất kể ai gọi), khác với InvoiceService là nơi điều phối luồng nghiệp vụ
- * (lấy đơn giá từ Contract, gọi PaymentService sinh QR, lưu DB...).
+ * bất kể ai gọi), khác với InvoiceService là nơi điều phối luồng nghiệp vụ.
  */
 class Invoice {
   constructor({
     id, contract_id, room_id, tenant_id, room_number, tenant_name, month, year,
-    electricity, water,
-    room_fee, electricity_fee, water_fee, other_fee, total_amount,
-    payment_status, due_date, bill_file_url,
+    room_fee, electricity, water, other_fee, total_amount,
+    payment_status, paid_at, payment_method, transaction_ref, due_date, bill_file_url,
     last_reminder_sent_at, reminder_count, created_at,
   }) {
     this.id = id;
@@ -20,14 +19,15 @@ class Invoice {
     this.tenant_name = tenant_name;
     this.month = month;
     this.year = year;
-    this.electricity = electricity;
-    this.water = water;
     this.room_fee = room_fee;
-    this.electricity_fee = electricity_fee;
-    this.water_fee = water_fee;
-    this.other_fee = other_fee;
+    this.electricity = electricity; // tiền điện (VNĐ)
+    this.water = water; // tiền nước (VNĐ)
+    this.other_fee = other_fee; // phụ phí (VNĐ)
     this.total_amount = total_amount;
     this.payment_status = payment_status; // 'UNPAID' | 'PAID'
+    this.paid_at = paid_at;
+    this.payment_method = payment_method;
+    this.transaction_ref = transaction_ref;
     this.due_date = due_date;
     this.bill_file_url = bill_file_url;
     this.last_reminder_sent_at = last_reminder_sent_at;
@@ -40,14 +40,12 @@ class Invoice {
   }
 
   /**
-   * Tính toán chi tiết hóa đơn dựa trên đơn giá lấy từ Contract + giá phòng lấy từ Room.
-   * Trả về object đã tính sẵn, dùng để tạo Invoice mới (chưa insert DB).
+   * Tổng hóa đơn = tiền phòng + tiền điện + tiền nước + phụ phí (tất cả VNĐ).
    */
-  static calculate({ electricity, water, roomPrice, electricityRate, waterRate, serviceFee = 0, otherFee = 0 }) {
-    const electricityFee = electricity * electricityRate;
-    const waterFee = water * waterRate;
-    const totalAmount = Number(roomPrice) + electricityFee + waterFee + Number(serviceFee) + Number(otherFee);
-    return { electricity, water, electricityFee, waterFee, roomFee: roomPrice, totalAmount };
+  static calculate({ roomPrice, electricity = 0, water = 0, otherFee = 0 }) {
+    const roomFee = Number(roomPrice);
+    const totalAmount = roomFee + electricity + water + otherFee;
+    return { roomFee, electricity, water, otherFee, totalAmount };
   }
 
   isPaid() {

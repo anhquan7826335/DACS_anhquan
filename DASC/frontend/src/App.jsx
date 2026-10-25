@@ -10,6 +10,10 @@ import Rooms from './pages/admin/Rooms';
 import RoomDetail from './pages/admin/RoomDetail';
 import Invoices from './pages/admin/Invoices';
 import Tickets from './pages/admin/Tickets';
+import Users from './pages/admin/Users';
+import Contracts from './pages/admin/Contracts';
+import Reports from './pages/admin/Reports';
+import TenantContracts from './pages/tenant/TenantContracts';
 import TenantHome from './pages/tenant/TenantHome';
 import TenantRooms from './pages/tenant/TenantRooms';
 import TenantTicket from './pages/tenant/TenantTicket';
@@ -36,13 +40,17 @@ export default function App() {
               {/* Admin */}
               <Route path="/admin/rooms" element={<PrivateRoute role="ADMIN"><Rooms /></PrivateRoute>} />
               <Route path="/admin/rooms/:id" element={<PrivateRoute role="ADMIN"><RoomDetail /></PrivateRoute>} />
+              <Route path="/admin/contracts" element={<PrivateRoute role="ADMIN"><Contracts /></PrivateRoute>} />
               <Route path="/admin/invoices" element={<PrivateRoute role="ADMIN"><Invoices /></PrivateRoute>} />
+              <Route path="/admin/reports" element={<PrivateRoute role="ADMIN"><Reports /></PrivateRoute>} />
+              <Route path="/admin/users" element={<PrivateRoute role="ADMIN"><Users /></PrivateRoute>} />
               <Route path="/admin/tickets" element={<PrivateRoute role="ADMIN"><Tickets /></PrivateRoute>} />
               <Route path="/admin/support" element={<PrivateRoute role="ADMIN"><Support /></PrivateRoute>} />
 
               {/* Tenant */}
               <Route path="/tenant" element={<PrivateRoute role="TENANT"><TenantHome /></PrivateRoute>} />
               <Route path="/tenant/rooms" element={<PrivateRoute role="TENANT"><TenantRooms /></PrivateRoute>} />
+              <Route path="/tenant/contracts" element={<PrivateRoute role="TENANT"><TenantContracts /></PrivateRoute>} />
               <Route path="/tenant/tickets" element={<PrivateRoute role="TENANT"><TenantTicket /></PrivateRoute>} />
               <Route path="/tenant/support" element={<PrivateRoute role="TENANT"><Support /></PrivateRoute>} />
             </Route>

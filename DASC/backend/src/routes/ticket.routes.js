@@ -8,6 +8,7 @@ const { ticketController } = controllers;
 
 router.post('/analyze-image', authenticate, upload.single('file'), ticketController.analyzeImage);
 router.post('/', authenticate, authorize('TENANT'), ticketController.createTicket);
+router.get('/my', authenticate, authorize('TENANT'), ticketController.getMyTickets);
 router.get('/', authenticate, authorize('ADMIN'), ticketController.getTickets);
 router.put('/:id', authenticate, authorize('ADMIN'), ticketController.updateTicketStatus);
 

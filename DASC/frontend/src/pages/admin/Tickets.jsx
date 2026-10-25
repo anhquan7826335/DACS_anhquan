@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Tag, Typography, Select, Space, Button, message, Image } from 'antd';
+import { Table, Tag, Typography, Select, Space, Button, message, Image, Modal, Input } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import api from '../../api/axios';
 
@@ -15,6 +15,19 @@ export default function Tickets() {
   const [loading, setLoading] = useState(false);
   const [severity, setSeverity] = useState();
   const [status, setStatus] = useState();
+  const [noting, setNoting] = useState(null);
+  const [note, setNote] = useState('');
+
+  async function saveNote() {
+    try {
+      await api.put(`/tickets/${noting.id}`, { admin_note: note });
+      message.success('Đã lưu ghi chú phản hồi.');
+      setNoting(null);
+      fetchTickets();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể lưu ghi chú.');
+    }
+  }
 
   async function fetchTickets() {
     setLoading(true);
@@ -68,7 +81,17 @@ export default function Tickets() {
         />
       ),
     },
+    {
+      title: 'Phản hồi của chủ trọ', dataIndex: 'admin_note', key: 'admin_note',
+      render: (v, r) => (
+        <div>
+          <div>{v || <span style={{ color: '#bbb' }}>Chưa có</span>}</div>
+          <Button size="small" type="link" style={{ padding: 0 }} onClick={() => { setNoting(r); setNote(v || ''); }}>Ghi chú</Button>
+        </div>
+      ),
+    },
     { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at' },
+    { title: 'Xử lý xong', dataIndex: 'resolved_at', key: 'resolved_at', render: (v) => v || '-' },
   ];
 
   return (
@@ -96,7 +119,11 @@ export default function Tickets() {
         </Space>
       </div>
 
-      <Table rowKey="id" columns={columns} dataSource={tickets} loading={loading} bordered scroll={{ x: 1000 }} />
+      <Table rowKey="id" columns={columns} dataSource={tickets} loading={loading} bordered scroll={{ x: 1300 }} />
+
+      <Modal title={`Phản hồi sự cố: ${noting?.title || ''}`} open={!!noting} onCancel={() => setNoting(null)} onOk={saveNote} okText="Lưu" cancelText="Hủy">
+        <Input.TextArea rows={3} maxLength={255} showCount value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú / hướng xử lý, khách sẽ nhìn thấy" />
+      </Modal>
     </div>
   );
 }

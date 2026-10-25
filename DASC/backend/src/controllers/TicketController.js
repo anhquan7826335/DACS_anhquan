@@ -21,7 +21,6 @@ class TicketController extends BaseController {
       const id = await this.ticketService.create({
         ...req.body,
         tenant_id: req.user.id,
-        tenant_name: req.user.full_name,
       });
       return res.status(201).json({ id, message: 'Đã gửi báo cáo sự cố.' });
     } catch (err) {
@@ -37,11 +36,18 @@ class TicketController extends BaseController {
       return this.handleError(res, err);
     }
   };
-  // cập nhật trạng thái ticket
+  getMyTickets = async (req, res) => {
+    try {
+      return res.json(await this.ticketService.listMine(req.user.id));
+    } catch (err) {
+      return this.handleError(res, err);
+    }
+  };
+  // admin xử lý sự cố: trạng thái + ghi chú
   updateTicketStatus = async (req, res) => {
     try {
-      await this.ticketService.updateStatus(req.params.id, req.body.status);
-      return res.json({ message: 'Đã cập nhật trạng thái ticket.' });
+      await this.ticketService.handle(req.params.id, req.body || {});
+      return res.json({ message: 'Đã cập nhật sự cố.' });
     } catch (err) {
       return this.handleError(res, err);
     }

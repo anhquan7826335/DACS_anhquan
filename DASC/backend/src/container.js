@@ -3,6 +3,7 @@ const { pool, testConnection } = require('./config/db');
 
 // ---- Repositories (Data Access Layer) ----
 const UserRepository = require('./repositories/UserRepository');
+const ReportRepository = require('./repositories/ReportRepository');
 const RoomRepository = require('./repositories/RoomRepository');
 const ContractRepository = require('./repositories/ContractRepository');
 const InvoiceRepository = require('./repositories/InvoiceRepository');
@@ -22,6 +23,8 @@ const ContractService = require('./services/ContractService');
 const InvoiceService = require('./services/InvoiceService');
 const TicketService = require('./services/TicketService');
 const SupportService = require('./services/SupportService');
+const UserService = require('./services/UserService');
+const ReportService = require('./services/ReportService');
 
 // ---- Controllers ----
 const AuthController = require('./controllers/AuthController');
@@ -30,6 +33,8 @@ const ContractController = require('./controllers/ContractController');
 const InvoiceController = require('./controllers/InvoiceController');
 const TicketController = require('./controllers/TicketController');
 const SupportController = require('./controllers/SupportController');
+const UserController = require('./controllers/UserController');
+const ReportController = require('./controllers/ReportController');
 
 /**
  * Container — "Composition Root" của toàn ứng dụng: nơi duy nhất khởi tạo
@@ -70,12 +75,12 @@ const authService = new AuthService(userRepository, {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN,
 }, cloudinaryService);
-const roomService = new RoomService(roomRepository);
+const roomService = new RoomService(roomRepository, cloudinaryService);
 const contractService = new ContractService(contractRepository, roomRepository, userRepository);
 const invoiceService = new InvoiceService(
   invoiceRepository, contractRepository, roomRepository, cloudinaryService, ocrService, paymentService
 );
-const ticketService = new TicketService(ticketRepository, roomRepository, cloudinaryService, ocrService);
+const ticketService = new TicketService(ticketRepository, roomRepository, cloudinaryService, ocrService, contractRepository);
 const supportService = new SupportService(supportRepository, ocrService);
 
 const authController = new AuthController(authService);
@@ -86,10 +91,14 @@ const invoiceController = new InvoiceController(
 );
 const ticketController = new TicketController(ticketService);
 const supportController = new SupportController(supportService);
+const userService = new UserService(userRepository);
+const reportService = new ReportService(new ReportRepository(pool), invoiceService);
+const reportController = new ReportController(reportService);
+const userController = new UserController(userService);
 
 module.exports = {
   pool,
   testConnection,
   reminderEngine,
-  controllers: { authController, roomController, contractController, invoiceController, ticketController, supportController },
+  controllers: { authController, roomController, contractController, invoiceController, ticketController, supportController, userController, reportController },
 };
